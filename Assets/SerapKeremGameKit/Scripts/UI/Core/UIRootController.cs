@@ -7,6 +7,7 @@ using UnityEngine;
 using SerapKeremGameKit._Audio;
 using SerapKeremGameKit._Haptics;
 using _Game.UI;
+using _Game.Ads;
 
 namespace SerapKeremGameKit._UI
 {
@@ -89,6 +90,7 @@ namespace SerapKeremGameKit._UI
             if (current == GameState.OnStart)
             {
                 HideAll();
+                AdsRuntimeUI.HideAll();
                 if (_hud != null)
                 {
                     _hud.Show(false);
@@ -104,6 +106,7 @@ namespace SerapKeremGameKit._UI
             else if (current == GameState.OnLose)
             {
                 ShowFail();
+                AdsRuntimeUI.HideAll();
                 if (AudioManager.IsInitialized && !string.IsNullOrEmpty(_keyOnLose)) AudioManager.Instance.Play(_keyOnLose);
                 if (HapticManager.IsInitialized) HapticManager.Instance.Play(HapticType.Failure);
             }
@@ -135,6 +138,14 @@ namespace SerapKeremGameKit._UI
                 }
                 _win.Setup(stars, reward, totalBefore, this);
                 _win.Show();
+
+                // Offer to double the reward with a rewarded video.
+                AdsRuntimeUI.ShowDoubleCoinsButton(reward, _ =>
+                {
+                    // AdsRuntimeUI already unlocked the bonus; reflect it on the win panel so
+                    // the coin animation and the granted total stay in sync.
+                    if (_win != null) _win.ApplyRewardMultiplier(AdsConfig.DoubleCoinsMultiplier);
+                });
             }
         }
 
@@ -205,6 +216,7 @@ namespace SerapKeremGameKit._UI
 
         public void OnRestartConfirmed()
         {
+            AdsRuntimeUI.HideAll();
             HideAll();
             LevelManager.Instance.RestartLevel();
             if (_hud != null)
@@ -218,6 +230,14 @@ namespace SerapKeremGameKit._UI
 
         public void OnNextLevelRequested()
         {
+            AdsRuntimeUI.HideAll();
+
+            // Interstitial between levels, on a cadence rather than after every level.
+            if (AdsManager.Exists && AdsManager.Instance != null)
+            {
+                AdsManager.Instance.NotifyLevelCompleted();
+            }
+
             HideAll();
             if (_hud != null)
             {

@@ -9,6 +9,7 @@ using UnityEngine;
 using Array2DEditor;
 using _Game.Line;
 using _Game.UI;
+using _Game.Ads;
 
 
 
@@ -90,6 +91,11 @@ namespace SerapKeremGameKit._LevelSystem
             if (InputHandler.Instance != null)
             {
                 InputHandler.Instance.UnlockInput();
+            }
+
+            if (AdsManager.Exists && AdsManager.Instance != null)
+            {
+                AdsManager.Instance.ResetLevelState();
             }
 
             _isLevelWon = false;
@@ -176,7 +182,51 @@ namespace SerapKeremGameKit._LevelSystem
         private void HandleLivesDepleted()
         {
             if (_loseCoroutine != null) return;
+
+            // Before conceding, give the player a chance to earn a life back with a rewarded
+            // video. If no ad is available this falls straight through to the normal loss.
+            if (TryOfferExtraLife()) return;
+
             CheckLoseCondition();
+        }
+
+        /// <summary>
+        /// Shows the "+1 life" rewarded prompt. Returns true when the prompt was shown and the
+        /// outcome is now the player's to decide.
+        /// </summary>
+        private bool TryOfferExtraLife()
+        {
+            if (!AdsManager.Exists || AdsManager.Instance == null) return false;
+            if (!AdsManager.Instance.CanOfferExtraLife) return false;
+            if (!AdsManager.Instance.RewardedReady) return false;
+            if (!LivesManager.IsInitialized || LivesManager.Instance == null) return false;
+
+            AdsManager.Instance.ConsumeExtraLifeOffer();
+
+            if (InputHandler.Instance != null) InputHandler.Instance.LockInput();
+
+            AdsRuntimeUI.ShowExtraLifePrompt(
+                onAccept: () =>
+                {
+                    AdsManager.Instance.ShowRewarded(
+                        onRewarded: () =>
+                        {
+                            LivesManager.Instance.GrantLife(1);
+                            if (InputHandler.Instance != null) InputHandler.Instance.UnlockInput();
+                        },
+                        onUnavailable: () =>
+                        {
+                            // Ad vanished between the check and the tap — resume the loss.
+                            if (InputHandler.Instance != null) InputHandler.Instance.UnlockInput();
+                            CheckLoseCondition();
+                        });
+                },
+                onDecline: () =>
+                {
+                    CheckLoseCondition();
+                });
+
+            return true;
         }
 
         private void HandleAllLinesRemoved()

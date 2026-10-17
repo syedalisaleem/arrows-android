@@ -53,6 +53,17 @@ namespace SerapKeremGameKit._UI
 
         private void OnTotalCoinStep(long value) { }
 
+        /// <summary>
+        /// Scales the pending reward after a rewarded "double coins" video, keeping the
+        /// displayed amount and the granted amount in sync.
+        /// </summary>
+        public void ApplyRewardMultiplier(int multiplier)
+        {
+            if (multiplier <= 1) return;
+            _pendingReward *= multiplier;
+            if (_coinText != null) _coinText.text = _pendingReward.ToString();
+        }
+
         private void SetStars(int count)
         {
             if (_star1 != null) _star1.SetActive(count >= 1);

@@ -39,6 +39,12 @@ jobs:
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > Keys/arrows-release.keystore
           ls -l Keys/arrows-release.keystore
 
+      - name: Activate Unity
+        uses: game-ci/unity-activate@v2
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
       - name: Build
         uses: game-ci/unity-builder@v4
         env:

@@ -1,0 +1,84 @@
+name: Acquire Unity license
+
+# Diagnostic workflow.
+#
+# Goal: find out whether a Unity Personal licence can be minted entirely in CI
+# (so no Unity Hub / Editor ever has to be installed on a local machine).
+#
+# It runs the GameCI editor image, attempts credential activation, then hunts
+# the container filesystem for any .ulf that was produced and uploads it.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  license:
+    name: Try to mint a Personal licence in CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Prepare activation script
+        run: |
+          mkdir -p license-out
+          cat > activate.sh <<'SCRIPT'
+          #!/bin/bash
+          echo "=== which unity-editor ==="
+          command -v unity-editor || ls -la /opt/unity/editors/*/Editor/Unity 2>/dev/null
+
+          echo
+          echo "=== attempting credential activation ==="
+          unity-editor -batchmode -nographics -quit \
+            -username "$UNITY_EMAIL" \
+            -password "$UNITY_PASSWORD" \
+            -logFile /dev/stdout 2>&1 | tail -120
+          echo "unity-editor exit: $?"
+
+          echo
+          echo "=== licence files on disk ==="
+          find / -iname '*.ulf' -not -path '/proc/*' -not -path '/sys/*' 2>/dev/null | tee /out/found.txt
+
+          echo
+          echo "=== unity licensing client state ==="
+          ls -la /root/.local/share/unity3d/Unity/ 2>/dev/null
+          ls -la /root/.config/unity3d/ 2>/dev/null
+          find / -iname '*Unity_lic*' -not -path '/proc/*' 2>/dev/null
+
+          echo
+          echo "=== copying anything found into /out ==="
+          while IFS= read -r f; do
+            if [ -n "$f" ]; then
+              cp "$f" /out/ 2>/dev/null && echo "copied $f"
+            fi
+          done < /out/found.txt
+
+          echo
+          echo "=== /out contents ==="
+          ls -la /out
+          SCRIPT
+          chmod +x activate.sh
+          echo "--- script written ---"
+          cat activate.sh
+
+      - name: Run activation inside the editor image
+        id: activate
+        continue-on-error: true
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          docker run --rm \
+            -e UNITY_EMAIL \
+            -e UNITY_PASSWORD \
+            -v "$PWD/activate.sh:/activate.sh:ro" \
+            -v "$PWD/license-out:/out" \
+            unityci/editor:ubuntu-6000.0.58f2-android-3.2.2 \
+            bash /activate.sh
+
+      - name: Upload anything we found
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-license-attempt
+          path: license-out/**
+          if-no-files-found: warn

@@ -3,34 +3,35 @@ namespace _Game.Ads
     /// <summary>
     /// All AdMob identifiers in one place.
     ///
-    /// ⚠️ THESE ARE GOOGLE'S OFFICIAL TEST IDS. They serve real, clickable test ads and are
-    /// safe for development. Replace every value below with your own AdMob IDs before you
-    /// publish, then rebuild the AAB.
-    ///
-    ///   AdMob console → Apps → your app → Ad units
-    ///   App ID  looks like  ca-app-pub-################~##########
-    ///   Unit ID looks like  ca-app-pub-################/##########
-    ///
-    /// The App ID is also written into GoogleMobileAdsSettings.asset; keep the two in sync.
+    /// These are the live values from the AdMob console. The App ID here must always match
+    /// the one in Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset — the build
+    /// reads the App ID from that asset and writes it into AndroidManifest.xml, and the SDK
+    /// will refuse to start if the two disagree.
     /// </summary>
     public static class AdsConfig
     {
         // ---------------------------------------------------------------------
-        // TODO: replace with your real AdMob IDs
+        // AdMob identifiers
         // ---------------------------------------------------------------------
 
-        /// <summary>AdMob App ID (used for SDK initialisation / manifest meta-data).</summary>
-        public const string AndroidAppId = "ca-app-pub-3940256099942544~3347511713";
+        /// <summary>AdMob App ID for the Arrows Android app.</summary>
+        public const string AndroidAppId = "ca-app-pub-7129470803481646~1513994194";
 
         /// <summary>
-        /// Rewarded video unit. Shared by both rewarded placements ("+1 life" and
-        /// "double coins"). If you want to compare their performance, create two units in the
-        /// AdMob console and give each its own constant here.
+        /// Rewarded unit shown when the player runs out of lives.
+        ///
+        /// NOTE: you created two rewarded units and the screenshots don't show which is
+        /// which. If you labelled them the other way round in the AdMob console, swap the
+        /// two values below — the game behaves identically either way, this only affects
+        /// which unit's reporting each placement lands in.
         /// </summary>
-        public const string RewardedUnitId = "ca-app-pub-3940256099942544/5224354917";
+        public const string RewardedExtraLifeUnitId = "ca-app-pub-7129470803481646/7406194139";
 
-        /// <summary>Interstitial unit — shown between levels.</summary>
-        public const string InterstitialUnitId = "ca-app-pub-3940256099942544/1033173712";
+        /// <summary>Rewarded unit shown on the win panel to double the coins.</summary>
+        public const string RewardedDoubleCoinsUnitId = "ca-app-pub-7129470803481646/5180767308";
+
+        /// <summary>Interstitial unit shown between levels.</summary>
+        public const string InterstitialUnitId = "ca-app-pub-7129470803481646/3163696791";
 
         // ---------------------------------------------------------------------
         // Behaviour tuning
@@ -38,7 +39,7 @@ namespace _Game.Ads
 
         /// <summary>
         /// Show an interstitial after this many completed levels.
-        /// 2 means: levels 1, 3, 5 ... are followed by an ad. Never use 1 — it doubles the
+        /// 2 means levels 1, 3, 5 ... are followed by an ad. Never use 1 — it doubles the
         /// friction of a game that only has 10 levels.
         /// </summary>
         public const int InterstitialEveryNLevels = 2;

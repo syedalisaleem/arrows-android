@@ -289,7 +289,8 @@ namespace _Game.Ads
                         AdsManager.Instance.UnlockDoubleCoins();
                         onRewarded?.Invoke(bonus * AdsConfig.DoubleCoinsMultiplier);
                     },
-                    onUnavailable: () => { });
+                    onUnavailable: () => { },
+                    unitId: AdsConfig.RewardedDoubleCoinsUnitId);
             });
 
             // Keep the button on top of the win panel art.

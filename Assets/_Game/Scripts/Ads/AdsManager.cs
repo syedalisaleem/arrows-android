@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GoogleMobileAds.Api;
 using UnityEngine;
 using SerapKeremGameKit._Logging;
@@ -33,19 +34,31 @@ namespace _Game.Ads
             go.AddComponent<AdsRuntimeUI>();
         }
 
-        private RewardedAd _rewardedAd;
+        /// <summary>
+        /// One rewarded ad unit and its load state. Both rewarded placements get their own
+        /// unit so their performance can be compared in the AdMob console.
+        /// </summary>
+        private sealed class RewardedSlot
+        {
+            public string UnitId;
+            public RewardedAd Ad;
+            public bool Loading;
+            public int Retry;
+            public float RetryAt;
+            public Action OnEarned;
+            public Action OnUnavailable;
+            public bool EarnedThisShow;
+
+            public bool Ready => Ad != null && Ad.CanShowAd();
+        }
+
+        private readonly Dictionary<string, RewardedSlot> _rewarded = new();
+
         private InterstitialAd _interstitialAd;
-        private bool _rewardedLoading;
-        private Action _onRewardEarned;
-        private Action _onRewardUnavailable;
-        private bool _rewardEarnedThisShow;
         private bool _interstitialLoading;
-        private int _rewardedRetry;
         private int _interstitialRetry;
-        private float _rewardedRetryAt;
         private float _interstitialRetryAt;
         private bool _sdkReady;
-        private string _pendingRewardedUnitId;
 
         private int _completedLevelsSinceInterstitial;
         private float _lastInterstitialTime = -999f;
@@ -55,9 +68,27 @@ namespace _Game.Ads
         public bool DoubleCoinsUnlocked { get; private set; }
 
         public bool SdkReady => _sdkReady;
-        public bool RewardedReady => _rewardedAd != null && _rewardedAd.CanShowAd();
         public bool InterstitialReady => _interstitialAd != null && _interstitialAd.CanShowAd();
-        public bool CanOfferExtraLife => _extraLifeOffersThisLevel < AdsConfig.MaxExtraLifeOffersPerLevel;
+
+        /// <summary>True when the "+1 life" placement has a loaded ad ready to show.</summary>
+        public bool RewardedReady => IsRewardedReady(AdsConfig.RewardedExtraLifeUnitId);
+
+        public bool CanOfferExtraLife =>
+            _extraLifeOffersThisLevel < AdsConfig.MaxExtraLifeOffersPerLevel;
+
+        public bool IsRewardedReady(string unitId)
+        {
+            return _rewarded.TryGetValue(unitId, out var slot) && slot.Ready;
+        }
+
+        private RewardedSlot Slot(string unitId)
+        {
+            if (_rewarded.TryGetValue(unitId, out var existing)) return existing;
+
+            var created = new RewardedSlot { UnitId = unitId, RetryAt = -1f };
+            _rewarded[unitId] = created;
+            return created;
+        }
 
         #region Lifecycle
 
@@ -83,23 +114,34 @@ namespace _Game.Ads
             {
                 _sdkReady = true;
                 TraceLogger.Log(LogPrefix + "SDK initialised.");
-                PreloadRewarded(AdsConfig.RewardedUnitId);
+
+                // Warm both rewarded units and the interstitial up front so a placement
+                // never has to wait for a download when the player asks for it.
+                PreloadRewarded(AdsConfig.RewardedExtraLifeUnitId);
+                PreloadRewarded(AdsConfig.RewardedDoubleCoinsUnitId);
                 PreloadInterstitial();
             });
         }
 
         private void Update()
         {
-            // Lightweight retry pump for failed loads.
             if (!_sdkReady) return;
+
             float now = Time.unscaledTime;
 
-            if (_rewardedAd == null && !_rewardedLoading && _rewardedRetry < MaxRewardedRetries && now >= _rewardedRetryAt)
+            // Retry pump. Iterate a snapshot so Slot() lookups can't invalidate the loop.
+            foreach (var unitId in new List<string>(_rewarded.Keys))
             {
-                PreloadRewarded(_pendingRewardedUnitId ?? AdsConfig.RewardedUnitId);
+                if (!_rewarded.TryGetValue(unitId, out var slot)) continue;
+                if (slot.Ad != null || slot.Loading) continue;
+                if (slot.Retry >= MaxRewardedRetries) continue;
+                if (now < slot.RetryAt) continue;
+
+                PreloadRewarded(unitId);
             }
 
-            if (_interstitialAd == null && !_interstitialLoading && _interstitialRetry < MaxInterstitialRetries && now >= _interstitialRetryAt)
+            if (_interstitialAd == null && !_interstitialLoading &&
+                _interstitialRetry < MaxInterstitialRetries && now >= _interstitialRetryAt)
             {
                 PreloadInterstitial();
             }
@@ -116,66 +158,67 @@ namespace _Game.Ads
 
         private void PreloadRewarded(string unitId)
         {
-            if (_rewardedLoading) return;
-            _rewardedLoading = true;
-            _pendingRewardedUnitId = unitId;
+            var slot = Slot(unitId);
+            if (slot.Loading || slot.Ad != null) return;
+
+            slot.Loading = true;
 
             try
             {
                 RewardedAd.Load(unitId, new AdRequest(), (RewardedAd ad, LoadAdError error) =>
                 {
-                    _rewardedLoading = false;
+                    slot.Loading = false;
 
                     if (error != null || ad == null)
                     {
-                        _rewardedRetry++;
-                        _rewardedRetryAt = Time.unscaledTime + Mathf.Min(30f, 2f * _rewardedRetry);
-                        TraceLogger.LogWarning(LogPrefix + $"Rewarded load failed ({_rewardedRetry}): " +
+                        slot.Retry++;
+                        slot.RetryAt = Time.unscaledTime + Mathf.Min(30f, 2f * slot.Retry);
+                        TraceLogger.LogWarning(LogPrefix + $"Rewarded load failed ({unitId}, attempt {slot.Retry}): " +
                                                (error != null ? error.GetMessage() : "null ad"));
                         return;
                     }
 
-                    _rewardedRetry = 0;
-                    _rewardedAd = ad;
-                    RegisterRewardedEvents(ad);
-                    TraceLogger.Log(LogPrefix + "Rewarded ad ready.");
+                    slot.Retry = 0;
+                    slot.Ad = ad;
+                    RegisterRewardedEvents(slot, ad);
+                    TraceLogger.Log(LogPrefix + "Rewarded ad ready: " + unitId);
                 });
             }
             catch (Exception e)
             {
-                _rewardedLoading = false;
+                slot.Loading = false;
                 TraceLogger.LogWarning(LogPrefix + "Rewarded load threw: " + e.Message);
             }
         }
 
-        private void RegisterRewardedEvents(RewardedAd ad)
+        private void RegisterRewardedEvents(RewardedSlot slot, RewardedAd ad)
         {
             ad.OnAdFullScreenContentClosed += () =>
             {
-                _rewardedAd = null;
-                _rewardedRetry = 0;
-                PreloadRewarded(_pendingRewardedUnitId ?? AdsConfig.RewardedUnitId);
+                slot.Ad = null;
+                slot.Retry = 0;
+                PreloadRewarded(slot.UnitId);
 
-                // Decide the outcome now that the video has actually finished.
-                Action earned = _rewardEarnedThisShow ? _onRewardEarned : null;
-                _onRewardEarned = null;
-                _onRewardUnavailable = null;
-                _rewardEarnedThisShow = false;
+                // The video is over — only now do we know whether the reward was earned.
+                Action earned = slot.EarnedThisShow ? slot.OnEarned : null;
+                slot.OnEarned = null;
+                slot.OnUnavailable = null;
+                slot.EarnedThisShow = false;
 
                 if (earned != null) earned();
-                else TraceLogger.Log(LogPrefix + "Rewarded closed without earning a reward.");
+                else TraceLogger.Log(LogPrefix + "Rewarded closed without earning a reward: " + slot.UnitId);
             };
 
             ad.OnAdFullScreenContentFailed += (AdError error) =>
             {
-                _rewardedAd = null;
+                slot.Ad = null;
                 TraceLogger.LogWarning(LogPrefix + "Rewarded show failed: " + error.GetMessage());
-                PreloadRewarded(_pendingRewardedUnitId ?? AdsConfig.RewardedUnitId);
+                PreloadRewarded(slot.UnitId);
 
-                Action unavailable = _onRewardUnavailable;
-                _onRewardEarned = null;
-                _onRewardUnavailable = null;
-                _rewardEarnedThisShow = false;
+                Action unavailable = slot.OnUnavailable;
+                slot.OnEarned = null;
+                slot.OnUnavailable = null;
+                slot.EarnedThisShow = false;
 
                 if (unavailable != null) unavailable();
             };
@@ -188,34 +231,35 @@ namespace _Game.Ads
         /// </summary>
         public void ShowRewarded(Action onRewarded, Action onUnavailable, string unitId = null)
         {
-            unitId ??= AdsConfig.RewardedUnitId;
+            unitId ??= AdsConfig.RewardedExtraLifeUnitId;
+            var slot = Slot(unitId);
 
-            if (_rewardedAd == null || !_rewardedAd.CanShowAd())
+            if (!slot.Ready)
             {
-                TraceLogger.LogWarning(LogPrefix + "Rewarded not ready; requesting a fresh load.");
+                TraceLogger.LogWarning(LogPrefix + "Rewarded not ready; requesting a fresh load: " + unitId);
                 PreloadRewarded(unitId);
                 onUnavailable?.Invoke();
                 return;
             }
 
-            _onRewardEarned = onRewarded;
-            _onRewardUnavailable = onUnavailable;
-            _rewardEarnedThisShow = false;
+            slot.OnEarned = onRewarded;
+            slot.OnUnavailable = onUnavailable;
+            slot.EarnedThisShow = false;
 
             try
             {
                 // The closed/failed handlers registered at load time resolve the outcome.
-                _rewardedAd.Show(_ =>
+                slot.Ad.Show(_ =>
                 {
-                    _rewardEarnedThisShow = true;
-                    TraceLogger.Log(LogPrefix + "Reward earned by user.");
+                    slot.EarnedThisShow = true;
+                    TraceLogger.Log(LogPrefix + "User earned reward: " + unitId);
                 });
             }
             catch (Exception e)
             {
                 TraceLogger.LogWarning(LogPrefix + "Rewarded show threw: " + e.Message);
-                _onRewardEarned = null;
-                _onRewardUnavailable = null;
+                slot.OnEarned = null;
+                slot.OnUnavailable = null;
                 onUnavailable?.Invoke();
             }
         }
@@ -231,33 +275,37 @@ namespace _Game.Ads
 
             try
             {
-                InterstitialAd.Load(AdsConfig.InterstitialUnitId, new AdRequest(), (InterstitialAd ad, LoadAdError error) =>
-                {
-                    _interstitialLoading = false;
+                InterstitialAd.Load(AdsConfig.InterstitialUnitId, new AdRequest(),
+                    (InterstitialAd ad, LoadAdError error) =>
+                    {
+                        _interstitialLoading = false;
 
-                    if (error != null || ad == null)
-                    {
-                        _interstitialRetry++;
-                        _interstitialRetryAt = Time.unscaledTime + Mathf.Min(60f, 3f * _interstitialRetry);
-                        TraceLogger.LogWarning(LogPrefix + $"Interstitial load failed ({_interstitialRetry}): " +
-                                               (error != null ? error.GetMessage() : "null ad"));
-                        return;
-                    }
+                        if (error != null || ad == null)
+                        {
+                            _interstitialRetry++;
+                            _interstitialRetryAt = Time.unscaledTime +
+                                                   Mathf.Min(60f, 3f * _interstitialRetry);
+                            TraceLogger.LogWarning(LogPrefix +
+                                $"Interstitial load failed (attempt {_interstitialRetry}): " +
+                                (error != null ? error.GetMessage() : "null ad"));
+                            return;
+                        }
 
-                    _interstitialRetry = 0;
-                    _interstitialAd = ad;
-                    ad.OnAdFullScreenContentClosed += () =>
-                    {
-                        _interstitialAd = null;
-                        PreloadInterstitial();
-                    };
-                    ad.OnAdFullScreenContentFailed += (AdError err) =>
-                    {
-                        _interstitialAd = null;
-                        TraceLogger.LogWarning(LogPrefix + "Interstitial show failed: " + err.GetMessage());
-                        PreloadInterstitial();
-                    };
-                });
+                        _interstitialRetry = 0;
+                        _interstitialAd = ad;
+
+                        ad.OnAdFullScreenContentClosed += () =>
+                        {
+                            _interstitialAd = null;
+                            PreloadInterstitial();
+                        };
+                        ad.OnAdFullScreenContentFailed += (AdError err) =>
+                        {
+                            _interstitialAd = null;
+                            TraceLogger.LogWarning(LogPrefix + "Interstitial show failed: " + err.GetMessage());
+                            PreloadInterstitial();
+                        };
+                    });
             }
             catch (Exception e)
             {
@@ -276,10 +324,9 @@ namespace _Game.Ads
             _completedLevelsSinceInterstitial++;
 
             if (_completedLevelsSinceInterstitial < AdsConfig.InterstitialEveryNLevels) return false;
-
             if (Time.unscaledTime - _lastInterstitialTime < AdsConfig.InterstitialCooldownSeconds) return false;
 
-            if (_interstitialAd == null || !_interstitialAd.CanShowAd())
+            if (!InterstitialReady)
             {
                 PreloadInterstitial();
                 return false;
@@ -312,7 +359,7 @@ namespace _Game.Ads
             DoubleCoinsUnlocked = false;
         }
 
-        /// <summary>Marks that the player earned (or declined) the extra-life offer.</summary>
+        /// <summary>Marks that the extra-life offer has been used up for this level.</summary>
         public void ConsumeExtraLifeOffer()
         {
             _extraLifeOffersThisLevel++;

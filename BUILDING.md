@@ -3,47 +3,69 @@
 The build runs entirely on GitHub Actions — no Unity Editor is installed locally.
 Workflow: `.github/workflows/build-android.yml`
 
-Everything is configured **except one secret**: `UNITY_LICENSE`. Unity requires a licence
-to run the Editor headlessly, and a Unity **Personal** licence can only be issued by
-Unity Hub. There is no CI-only way to obtain one; see the notes at the bottom.
+Everything is configured and the build is green. `game-ci/unity-builder@v4` compiles on a
+GitHub-hosted runner and publishes the signed bundle as a run artifact.
 
 ---
 
-## One-time: get `UNITY_LICENSE`
+## How the Unity licence works
 
-This needs Unity Hub once. Unity Hub is **not** the Unity Editor — it is roughly 250 MB
-and is only used to mint a licence file. It can be uninstalled straight afterwards.
+GameCI needs three values, and `UNITY_SERIAL` is the one that actually triggers activation.
+Its `activate.sh` matches on:
 
-1. **Install Unity Hub** — https://unity.com/download
+```bash
+if [[ -n "$UNITY_SERIAL" && -n "$UNITY_EMAIL" && -n "$UNITY_PASSWORD" ]]; then
+```
 
-   > The C: drive on this machine is nearly full. The installer lets you choose a
-   > different destination folder — point it at `E:\UnityHub` or similar. Do not install
-   > any Editor version; only Hub itself is needed.
+then runs:
 
-2. **Launch Hub and sign in** with the Unity account tied to this project
-   (`syedalisaleem14@gmail.com`).
+```bash
+unity-editor -serial "$UNITY_SERIAL" -username "$UNITY_EMAIL" \
+             -password "$UNITY_PASSWORD" -projectPath "/BlankProject"
+```
 
-3. **Activate a free licence**
-   `Preferences` (the gear icon) → `Licenses` → `Add` → **`Get a free personal license`**
-   → accept the terms.
+`UNITY_LICENSE` alone is **not** forwarded into the container, so setting only that secret
+produces `License activation strategy could not be determined.`
 
-   Even if a licence already shows as active, complete this step — it is what writes the
-   file to disk.
+### One-time: obtain the Personal serial
 
-4. **Confirm the file exists** at:
+A Unity Personal serial starts with `F`. It is not displayed anywhere in the Unity Hub UI.
+The only tool that will mint one is Unity's own licensing client, which ships inside the
+Hub installer — the installer needs administrator rights, the client does not.
 
-   ```
-   C:\ProgramData\Unity\Unity_lic.ulf
-   ```
+```powershell
+# 1. Ask the licensing client for an activation request
+.\Unity.Licensing.Client.exe --generate-alf-request `
+    --activation-product-name Unity `
+    --activation-product-version 6000.0.58f2 `
+    --activation-file-path .\Unity_v6000.0.58f2.alf
 
-5. **Upload it as a secret** (from the repository root):
+# 2. Mint the ULF using the signed-in Hub session's access token.
+#    --accessToken also accepts --username/--password instead.
+.\Unity.Licensing.Client.exe --activate-ulf --accessToken <token>
+```
 
-   ```powershell
-   gh secret set UNITY_LICENSE -R syedalisaleem/arrows-android `
-     -b (Get-Content 'C:\ProgramData\Unity\Unity_lic.ulf' -Raw)
-   ```
+Step 2 writes `C:\ProgramData\Unity\Unity_lic.ulf`. The serial is the `<DeveloperData>`
+value, base64-decoded with the first four bytes dropped:
 
-That's it. You can now uninstall Unity Hub if you want.
+```powershell
+$ulf = Get-Content 'C:\ProgramData\Unity\Unity_lic.ulf' -Raw
+$b64 = [regex]::Match($ulf, '<DeveloperData\s+Value="([^"]+)"').Groups[1].Value
+$bytes = [Convert]::FromBase64String($b64)
+-join ($bytes[4..($bytes.Length - 1)] | ForEach-Object { [char]$_ })
+```
+
+Current serial: `F4-GBUN-78Q5-MSJK-8F5P-6C7Z`
+
+### One-time: store the secrets
+
+```powershell
+gh secret set UNITY_SERIAL   -R syedalisaleem/arrows-android -b 'F4-GBUN-78Q5-MSJK-8F5P-6C7Z'
+gh secret set UNITY_EMAIL    -R syedalisaleem/arrows-android
+gh secret set UNITY_PASSWORD -R syedalisaleem/arrows-android
+```
+
+Backups of the ULF and the release keystore are in `E:\build\keystore\`.
 
 ---
 
@@ -55,7 +77,7 @@ Push to `main`, or trigger it manually:
 gh workflow run build-android.yml -R syedalisaleem/arrows-android
 ```
 
-First build takes roughly 40–90 minutes. Later builds reuse the cached `Library` folder
+A cold build takes roughly 20–60 minutes. Later builds reuse the cached `Library` folder
 and are considerably faster.
 
 The signed `.aab` appears in the run's **Artifacts** section as `Arrows-AAB-<run number>`.
@@ -66,11 +88,19 @@ The signed `.aab` appears in the run's **Artifacts** section as `Arrows-AAB-<run
 
 | Secret | Purpose |
 |---|---|
-| `UNITY_LICENSE` | Contents of `Unity_lic.ulf`. **Currently missing — this is the only blocker.** |
+| `UNITY_SERIAL` | Unity Personal serial (`F…`). **This is what activates the build.** |
 | `UNITY_EMAIL` | Unity account email |
 | `UNITY_PASSWORD` | Unity account password |
+| `UNITY_LICENSE` | Optional, contents of `Unity_lic.ulf`. Not enough on its own — v4 does not forward it into the container. |
 | `ANDROID_KEYSTORE_BASE64` | Base64 of the release keystore |
 | `ANDROID_KEYSTORE_PASS` | Keystore + key password (alias `arrows`) |
+
+Release signing identity: `CN=Syed Ali, OU=Development, O=SyedAli, L=Lahore, ST=Punjab, C=PK`,
+RSA 2048 / SHA256withRSA. Verify a bundle with:
+
+```powershell
+jarsigner -verify -verbose -certs Arrows.aab
+```
 
 ---
 
@@ -89,19 +119,26 @@ into `AndroidManifest.xml`.
 
 ---
 
-## Why there is no CI-only licence path
+## Licence dead ends
 
-All three options were tested and are dead ends for a Unity Personal account:
+These look promising and do **not** work for a Unity Personal account:
 
-- **Manual activation** (`license.unity3d.com/manual`) — Unity removed Personal support.
-  Unity's own docs: *"Manual activation ... doesn't support Unity Pro assigned seats,
-  Unity Personal, or floating license subscriptions. To activate a license for Unity
-  Personal, log in to the Unity Hub."*
-- **`unity-editor -batchmode -username ... -password ...`** — exits 0 but grants nothing:
-  `[Licensing::Client] Error: ... Found 0 entitlement groups and 0 free entitlements`
-- **`game-ci/unity-activate`** — `License activation strategy could not be determined.`
-  Its "personal licence support" means *accepting a `.ulf`*, not credentials.
-- `game-ci/unity-request-activation-file` is formally **deprecated** by GameCI.
+- **`license.unity3d.com/manual`** — Personal support was removed. Uploading an `.alf`
+  only offers Pro/Plus. Older posts describing a "hidden Personal option" no longer apply.
+- **`unity-editor -username … -password …`** — authenticates fine
+  (`Successfully updated the access token`) then returns
+  `Found 0 entitlement groups and 0 free entitlements`. The account's entitlement is a
+  machine-bound *named-user* licence, so an unbound container is granted nothing.
+- **`-createManualActivationFile`** — Unity 6 checks the licence before honouring it and
+  exits with `No valid Unity Editor license found` without writing an `.alf`.
+- **`game-ci/unity-activate`** — its "personal licence support" means *accepting a `.ulf`*,
+  not credentials.
+- **`game-ci/unity-request-activation-file`** — formally deprecated by GameCI.
 
-The `.ulf` is not bound tightly enough to the machine that created it to matter — GameCI's
-documented flow is to activate on Windows and build on Ubuntu CI.
+The serial route works because `UNITY_SERIAL` requests a *fresh* serial activation for
+whatever machine the container presents, so nothing stays tied to the PC that minted the
+ULF.
+
+A Personal ULF carries a rolling expiry of about one month. Every build re-activates from
+the serial, so CI keeps working unattended; if activation ever starts failing, re-mint the
+ULF and re-read the serial with the snippet above.

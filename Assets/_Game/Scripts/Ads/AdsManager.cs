@@ -110,6 +110,8 @@ namespace _Game.Ads
                 TraceLogger.LogWarning(LogPrefix + "Could not flag main-thread ad events: " + e.Message);
             }
 
+            ApplyRequestConfiguration();
+
             MobileAds.Initialize(status =>
             {
                 _sdkReady = true;
@@ -121,6 +123,30 @@ namespace _Game.Ads
                 PreloadRewarded(AdsConfig.RewardedDoubleCoinsUnitId);
                 PreloadInterstitial();
             });
+        }
+
+        /// <summary>
+        /// Keeps served creatives inside the store listing's PEGI 3 / Everyone rating.
+        /// Must run before <see cref="MobileAds.Initialize"/>.
+        /// The under-13 flags stay Unspecified because the app is not directed at children.
+        /// </summary>
+        private static void ApplyRequestConfiguration()
+        {
+            try
+            {
+                var requestConfiguration = new RequestConfiguration
+                {
+                    MaxAdContentRating = MaxAdContentRating.G,
+                    TagForChildDirectedTreatment = TagForChildDirectedTreatment.Unspecified,
+                    TagForUnderAgeOfConsent = TagForUnderAgeOfConsent.Unspecified,
+                };
+
+                MobileAds.SetRequestConfiguration(requestConfiguration);
+            }
+            catch (Exception e)
+            {
+                TraceLogger.LogWarning(LogPrefix + "Could not apply ad request configuration: " + e.Message);
+            }
         }
 
         private void Update()

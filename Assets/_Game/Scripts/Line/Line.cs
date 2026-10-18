@@ -33,6 +33,7 @@ namespace _Game.Line
         private Vector3ArrayPool _arrayPool;
         private bool _hasCollided = false;
         private bool _hasLostLifeForThisCollision = false;
+        private bool _interactionDisabled = false;
         private LineHeadCollisionDetector _headCollisionDetector;
 
         private void ValidateComponents()
@@ -231,6 +232,36 @@ namespace _Game.Line
             if (_lineManager != null)
             {
                 _lineManager.UnregisterLine(this);
+            }
+
+            // The solved line keeps flying off-screen for a moment. Disable
+            // its colliders now so another arrow cannot hit the dead trail,
+            // and so the departed arrow cannot be tapped again.
+            DisableInteraction();
+        }
+
+        private void DisableInteraction()
+        {
+            if (_interactionDisabled) return;
+            _interactionDisabled = true;
+
+            if (_colliderSpawner != null)
+            {
+                _colliderSpawner.DisableSegments();
+            }
+
+            if (_click != null)
+            {
+                _click.enabled = false;
+            }
+
+            if (_lineHead != null)
+            {
+                Collider2D headCollider = _lineHead.GetComponent<Collider2D>();
+                if (headCollider != null)
+                {
+                    headCollider.enabled = false;
+                }
             }
         }
 

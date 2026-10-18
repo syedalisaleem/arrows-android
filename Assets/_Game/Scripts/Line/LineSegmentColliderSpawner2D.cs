@@ -15,6 +15,7 @@ namespace _Game.Line
         [SerializeField] private bool autoUpdateInPlayMode = true;
 
         private readonly List<GameObject> _spawnedSegments = new();
+        private bool _segmentsDisabled;
 
         public void Initialize(LineRenderer lineRenderer)
         {
@@ -26,15 +27,26 @@ namespace _Game.Line
             }
         }
 
+        /// <summary>
+        /// Stops all future collider rebuilds and removes the current ones.
+        /// Used when a line has already been solved and is flying away.
+        /// </summary>
+        public void DisableSegments()
+        {
+            _segmentsDisabled = true;
+            ClearSegments();
+        }
+
         [ContextMenu("Rebuild Segment Colliders")]
         private void RebuildSegmentsContextMenu()
         {
+            if (_segmentsDisabled) return;
             RebuildSegments();
         }
 
         private void RebuildSegments()
         {
-            if (!lineRenderer || !segmentPrefab)
+            if (_segmentsDisabled || !lineRenderer || !segmentPrefab)
                 return;
 
             ClearSegments();
@@ -53,7 +65,7 @@ namespace _Game.Line
 
         public void UpdateSegments()
         {
-            if (!lineRenderer || !segmentPrefab)
+            if (_segmentsDisabled || !lineRenderer || !segmentPrefab)
                 return;
 
             int count = lineRenderer.positionCount;

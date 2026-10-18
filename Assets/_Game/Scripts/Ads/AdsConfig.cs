@@ -40,7 +40,7 @@ namespace _Game.Ads
         /// <summary>
         /// Show an interstitial after this many completed levels.
         /// 2 means levels 1, 3, 5 ... are followed by an ad. Never use 1 — it doubles the
-        /// friction of a game that only has 10 levels.
+        /// friction, especially across a 500-level progression.
         /// </summary>
         public const int InterstitialEveryNLevels = 2;
 

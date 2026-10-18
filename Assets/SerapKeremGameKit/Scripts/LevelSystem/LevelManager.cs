@@ -20,13 +20,14 @@ namespace SerapKeremGameKit._Managers
             set { PlayerPrefs.SetInt(ProgressKey, value); SaveUtility.SaveImmediate(); }
         }
 
-        [Tooltip("Use random selection after tutorials are completed.")]
-        [SerializeField] private bool _useRandomSelection = true;
-
         [Title("Level Collections")]
         [ListDrawerSettings(Draggable = true, AlwaysExpanded = false)]
         [FormerlySerializedAs("_gameplayLevels")]
         [SerializeField, Required] private Level[] _levels;
+
+        [Title("Procedural Levels")]
+        [Tooltip("Total number of levels. Anything past the handcrafted array is built at runtime from Resources/Levels/procedural_levels.txt.")]
+        [SerializeField, Min(1)] private int _totalLevelCount = 500;
 
         public Level ActiveLevelInstance { get; private set; }
         public int ProcessedLevelIndex { get; private set; }
@@ -34,6 +35,7 @@ namespace SerapKeremGameKit._Managers
         // Public accessors for external systems
         public Level[] GameplayLevels => _levels;
         public int GameplayLevelCount => _levels != null ? _levels.Length : 0;
+        public int TotalLevelCount => Mathf.Max(_totalLevelCount, _levels != null ? _levels.Length : 0);
 
         #endregion
 
@@ -66,45 +68,41 @@ namespace SerapKeremGameKit._Managers
         {
             var selection = ComputeLevelSelection();
             ProcessedLevelIndex = selection.targetIndex;
-            InstantiateAndBegin(selection.selectedLevel);
+            InstantiateAndBegin(selection.selectedLevel, selection.targetIndex);
         }
 
         private (Level selectedLevel, int targetIndex) ComputeLevelSelection()
         {
-            int currentProgress = ActiveLevelNumber;
-            return ResolveGameplaySelection(currentProgress);
+            return ResolveGameplaySelection(ActiveLevelNumber);
         }
 
-        private (Level selectedLevel, int targetIndex) ResolveGameplaySelection(int adjustedProgress)
+        private (Level selectedLevel, int targetIndex) ResolveGameplaySelection(int progress)
         {
-            int totalGameplayLevels = _levels.Length;
-            int calculatedIndex = ClampOrWrapIndex(adjustedProgress, totalGameplayLevels);
+            int index = Mathf.Clamp(progress, 1, TotalLevelCount);
 
-            return (_levels[calculatedIndex - 1], calculatedIndex);
+            if (_levels != null && index <= _levels.Length)
+                return (_levels[index - 1], index);
+
+            Level proceduralBase = Resources.Load<Level>("Levels/Level_Base");
+            if (proceduralBase == null)
+            {
+                TraceLogger.LogError("Procedural base level is missing at Resources/Levels/Level_Base. Falling back to level 1.", this);
+                return (_levels != null && _levels.Length > 0 ? _levels[0] : null, 1);
+            }
+
+            return (proceduralBase, index);
         }
 
-        private int ClampOrWrapIndex(int progressValue, int totalAvailable)
-        {
-            if (progressValue <= totalAvailable)
-                return progressValue;
-
-            if (_useRandomSelection)
-                return GetRandomIndex(totalAvailable);
-
-            return WrapIndex(progressValue, totalAvailable);
-        }
-
-        private int GetRandomIndex(int maxRange) => Random.Range(1, maxRange + 1);
-
-        private int WrapIndex(int value, int wrapLimit)
-        {
-            int remainder = value % wrapLimit;
-            return remainder == 0 ? wrapLimit : remainder;
-        }
-
-        private void InstantiateAndBegin(Level targetLevel)
+        private void InstantiateAndBegin(Level targetLevel, int levelNumber)
         {
             ActiveLevelInstance = Instantiate(targetLevel);
+            ActiveLevelInstance.name = $"Level {levelNumber}";
+
+            if (_levels == null || levelNumber > _levels.Length)
+            {
+                _Game.Levels.ProceduralLevelBuilder.Build(ActiveLevelInstance, levelNumber);
+            }
+
             ActiveLevelInstance.Load();
             Time.timeScale = 1f;
             if (SerapKeremGameKit._InputSystem.InputHandler.Instance != null)
@@ -133,8 +131,7 @@ namespace SerapKeremGameKit._Managers
         public void RetryLevel()
         {
             TerminateCurrentLevel();
-            var retryTarget = _levels[ProcessedLevelIndex - 1];
-            InstantiateAndBegin(retryTarget);
+            LoadCurrentLevel();
         }
 
         public void RestartLevel()
@@ -153,7 +150,7 @@ namespace SerapKeremGameKit._Managers
         public void IncreaseLevelNumber()
         {
             TerminateCurrentLevel();
-            ActiveLevelNumber++;
+            ActiveLevelNumber = Mathf.Min(ActiveLevelNumber + 1, TotalLevelCount);
         }
 
         private void TerminateCurrentLevel()

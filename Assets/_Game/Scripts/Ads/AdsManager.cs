@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GoogleMobileAds.Api;
+using GoogleMobileAds.Ump.Api;
 using UnityEngine;
 using SerapKeremGameKit._Logging;
 
@@ -112,6 +113,51 @@ namespace _Game.Ads
 
             ApplyRequestConfiguration();
 
+            // GDPR / EEA: ask the UMP SDK for the current consent state and show the
+            // Google-provided form when one is required. Ads only initialise after the
+            // flow finishes, so no personalised request goes out before consent.
+            RequestConsentThenInitialize();
+        }
+
+        private void RequestConsentThenInitialize()
+        {
+            try
+            {
+                var parameters = new ConsentRequestParameters
+                {
+                    TagForUnderAgeOfConsent = false,
+                };
+
+                ConsentInformation.Update(parameters, updateError =>
+                {
+                    if (updateError != null)
+                    {
+                        TraceLogger.LogWarning(LogPrefix + "Consent update failed: " + updateError.Message);
+                        InitializeMobileAds();
+                        return;
+                    }
+
+                    ConsentForm.LoadAndShowConsentFormIfRequired(formError =>
+                    {
+                        if (formError != null)
+                        {
+                            TraceLogger.LogWarning(LogPrefix + "Consent form error: " + formError.Message);
+                        }
+
+                        InitializeMobileAds();
+                    });
+                });
+            }
+            catch (Exception e)
+            {
+                // If the UMP dependency is unavailable, never block the game's ads.
+                TraceLogger.LogWarning(LogPrefix + "Consent flow unavailable: " + e.Message);
+                InitializeMobileAds();
+            }
+        }
+
+        private void InitializeMobileAds()
+        {
             MobileAds.Initialize(status =>
             {
                 _sdkReady = true;

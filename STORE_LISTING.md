@@ -60,8 +60,8 @@ No joysticks, no timers, no clutter. Every level is solved with taps.
 EASY TO LEARN, HARD TO RUSH
 Lines travel at different speeds and lengths, so the gap that looked safe a second ago is already closed.
 
-TEN HANDCRAFTED LEVELS
-Each board is a small, deliberate puzzle. Early levels teach you the rhythm; later ones ask you to work out the order before you touch anything.
+500 LEVELS, ONE CLIMB
+The first ten boards are hand-built to teach the rhythm. After that, the knots get longer, tighter, and more tangled — up to two dozen interlocking arrows on a single screen. Early levels take seconds. Later ones ask you to read the whole board before you touch anything.
 
 FIVE LIVES
 You start with five hearts. Every collision takes one. When they run out, the level restarts — and you can earn an extra life if you want one.
@@ -71,7 +71,7 @@ No countdown, no energy meter, no sign-in. Your coins and progress stay on your 
 
 FEATURES
 • One-tap controls built for phones
-• 10 handcrafted levels, each on a single screen
+• 500 levels, each on a single screen
 • A coin reward on every win
 • Clean, minimal art
 • Plays offline
@@ -84,7 +84,8 @@ Arrows is free to play. A short ad may appear between levels — never during on
 Somewhere in every level there is an order that works. Find it.
 ```
 
-Every claim above is true of the current build: 10 level prefabs, 5 starting lives
+Every claim above is true of the current build: 10 handcrafted level prefabs plus 490
+solver-verified procedural boards (levels 11–500), 5 starting lives
 (`LivesManager._maxLives`), `LevelConfig._winCoins = 10`, PlayerPrefs persistence,
 rewarded life + rewarded double coins, interstitial every 2 completed levels.
 
@@ -203,16 +204,20 @@ Play requires all of these before a release can roll out.
 
 | Asset | Spec | Status |
 |---|---|---|
-| App icon | 512×512 PNG, 32-bit, ≤ 1 MB | **Generated** — `E:\build\arrow-store\icon-512-dark.png` and `icon-512-light.png` |
-| Feature graphic | 1024×500 PNG/JPEG, no alpha | **Generated** — `E:\build\arrow-store\feature-1024x500.png` |
-| Phone screenshots | 2–8, 320–3840 px each side, ratio ≤ 2:1, 24-bit PNG no alpha | **4 exist** — `Assets/GameImages/1..4.png`, 498×883 |
-| 7" tablet screenshots | 2–8 (optional but recommended) | Missing |
-| 10" tablet screenshots | 2–8 (optional) | Missing |
-| Promo video | YouTube URL (optional) | Missing |
+| App icon | 512×512 PNG, 32-bit, ≤ 1 MB | **Ready** — `icon-512-light.png` (launcher uses light), `icon-512-dark.png` |
+| Feature graphic | 1024×500 PNG/JPEG, no alpha | **Ready** — `feature-1024x500.png` (flattened RGB) |
+| Phone screenshots | 2–8, 320–3840 px each side, ratio ≤ 2:1 | **Ready** — 4 × 1080×1920 in `screenshots/` |
+| 7" tablet screenshots | 2–8 (recommended) | **Ready** — 4 × 1080×1920 in `tablet-7/` |
+| 10" tablet screenshots | 2–8, each side 1080–7680 px | **Ready** — 4 × 1080×1920 in `tablet-10/` |
+| Promo video | YouTube URL (optional) | Optional |
 
-The four screenshots pass the minimum but 498×883 is below the 1080×1920 that Play
-recommends, so they will look soft on high-DPI devices. Re-capture at 1080×1920 when you
-next run the game on a phone — that is a screenshot job, not a code change.
+The phone set was upscaled (Lanczos + unsharp) from the game's native 498×883 captures to
+1080×1920, which clears Play's promotion threshold (≥ 4 shots, ≥ 3 at 1080 px). Re-capture
+natively the next time the game runs on a 1080p phone; the framing already matches.
+
+A 1080×1920 image satisfies both the 7-inch (320–3840) and 10-inch (1080–7680) tablet
+specs, so the two tablet folders are deliberately identical copies.
+`contact-sheet.png` shows all four shots side by side for a final look.
 
 Play also crops the feature graphic differently across surfaces. Keep text inside the
 central 80% — the generated one already does.
@@ -240,21 +245,19 @@ Pulled directly from `Arrows.aab` (run 39101234704), not assumed:
 
 ## 10. Blockers between here and "Publish"
 
-1. **Launcher icon is still Unity's default.** `ProjectSettings.asset` has
-   `m_BuildTargetPlatformIcons → Android` with every `m_Textures: []`, so the app ships
-   with the generic Unity mark. This is the one thing that makes a finished game look
-   unfinished. Fixing it means adding the icon assets to the project, wiring the adaptive
-   foreground/background slots, and rebuilding.
+1. **The 490 procedural levels must be verified in a real build.** The layouts are
+   solver-verified offline, but the runtime builder, camera fit, and level counter need a
+   device/emulator pass on levels 11, 12, 250, and 500.
 2. **Privacy policy URL is mandatory** — the app shows ads, so Play requires a reachable
-   policy. A static page on GitHub Pages is enough and free.
+   policy. The page is ready at `E:\build\privacy\index.html`; host it and paste the URL.
 3. **New personal developer accounts** (created after 13 Nov 2023) must run a closed test
    with **12 testers opted in for 14 continuous days** before applying for production.
    Confirm which type of account you have — it changes the timeline by two weeks.
 4. **Play App Signing** must be enrolled on the first upload. The `.aab` is signed with
    your upload key, which is exactly what Play expects; Google re-signs for distribution.
    Keep `E:\build\keystore\` forever.
-5. **Screenshots** — upgrade to 1080×1920 when convenient.
-6. **Ad content rating** — set to G in AdMob and in code (§5), bundled with the icon rebuild.
+5. **Ad content rating** — the G ceiling is wired in `AdsManager.ApplyRequestConfiguration`;
+   set the same ceiling in the AdMob console.
 
 ---
 
@@ -262,7 +265,7 @@ Pulled directly from `Arrows.aab` (run 39101234704), not assumed:
 
 | Field | Value |
 |---|---|
-| Contact email | a dedicated support address is better than a personal one |
+| Contact email | `syedalisaleem14@gmail.com` (also the address printed in the privacy policy) |
 | Website | optional |
 | Privacy policy | required — see §10.2 |
 | Default language | English (United States) |

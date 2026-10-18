@@ -143,7 +143,9 @@ RequestConfiguration requestConfiguration = new RequestConfiguration {
 MobileAds.SetRequestConfiguration(requestConfiguration);
 ```
 
-That needs a rebuild, so do it together with the launcher icon (see §10).
+**Done in code** — `AdsManager.ApplyRequestConfiguration` applies the same `G` ceiling at
+startup, and the build is already shipped with it. Set the matching ceiling in the AdMob
+console so the two cannot drift apart.
 
 ---
 
@@ -226,30 +228,33 @@ central 80% — the generated one already does.
 
 ## 9. Verified facts about the bundle
 
-Pulled directly from `Arrows.aab` (run 39101234704), not assumed:
+Pulled directly from `Arrows.apk` / `Arrows.aab` (run 39109341750, v15), not assumed:
 
 | Property | Value | Play requirement |
 |---|---|---|
 | Package | `com.syedali.arrows` | — |
-| versionCode | `12` | Must increase every upload ✅ |
-| versionName | `1.0.12` | — |
+| versionCode | `15` | Must increase every upload ✅ |
+| versionName | `1.0.15` | — |
 | minSdkVersion | `24` (Android 7.0) | — |
 | **targetSdkVersion** | **`36`** | New apps need ≥ 35 since Aug 2025 ✅ |
 | compileSdkVersion | `36` | — |
 | ABI | ARM64 only | 64-bit required ✅ |
-| Size | 40.33 MB | ≤ 200 MB base module ✅ |
-| Signature | `CN=Syed Ali`, RSA 2048, `jarsigner -verify` = 0 | — |
+| Levels | **500** (10 handcrafted + 490 data-driven, solver-verified) | — |
+| Size | 42.36 MB AAB · 42.67 MB APK | ≤ 200 MB base module ✅ |
+| Signature | `CN=Syed Ali`, RSA 2048, APK Signature Scheme **v2 + v3** (v1 JAR absent; fine at minSdk 24) | — |
 | AdMob App ID in manifest | `ca-app-pub-7129470803481646~1513994194` | Must match AdMob account ✅ |
+| Consent | Google UMP 4.0.0, requested **before** `MobileAds.Initialize` | EEA/UK requirement ✅ |
 
 ---
 
 ## 10. Blockers between here and "Publish"
 
-1. **The 490 procedural levels must be verified in a real build.** The layouts are
-   solver-verified offline, but the runtime builder, camera fit, and level counter need a
-   device/emulator pass on levels 11, 12, 250, and 500.
-2. **Privacy policy URL is mandatory** — the app shows ads, so Play requires a reachable
-   policy. The page is ready at `E:\build\privacy\index.html`; host it and paste the URL.
+1. **Device pass for the procedural levels.** v15 compiles and packages all 490 layouts,
+   but this environment has no emulator. On first install, play through level 11 (the
+   first procedural board) and check camera fit, line width, tap targets, and the level
+   counter. Later boards differ only in size and line count.
+2. **Privacy policy URL** — live at <https://syedalisaleem.github.io/arrows-android/privacy/>.
+   The source is `docs/privacy/index.html` in this repo, served by GitHub Pages from `main`.
 3. **New personal developer accounts** (created after 13 Nov 2023) must run a closed test
    with **12 testers opted in for 14 continuous days** before applying for production.
    Confirm which type of account you have — it changes the timeline by two weeks.
@@ -267,6 +272,6 @@ Pulled directly from `Arrows.aab` (run 39101234704), not assumed:
 |---|---|
 | Contact email | `syedalisaleem14@gmail.com` (also the address printed in the privacy policy) |
 | Website | optional |
-| Privacy policy | required — see §10.2 |
+| Privacy policy | <https://syedalisaleem.github.io/arrows-android/privacy/> |
 | Default language | English (United States) |
 | Countries | All |

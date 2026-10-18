@@ -58,6 +58,9 @@ namespace SerapKeremGameKit._UI
         {
             if (_uiRoot != null && _uiRoot.LivesManagerInstance != null)
             {
+                // Show() can run after every level / selection. Remove first so
+                // the HUD never accumulates duplicate heart callbacks.
+                _uiRoot.LivesManagerInstance.OnLivesChanged -= HandleLivesChanged;
                 _uiRoot.LivesManagerInstance.OnLivesChanged += HandleLivesChanged;
             }
         }
@@ -177,9 +180,18 @@ namespace SerapKeremGameKit._UI
                 Transform canvasRoot = CanvasRoot;
                 if (canvasRoot == null) return;
                 _levelMenu = LevelSelectMenu.Create(canvasRoot, FontAsset, ThemeSprite);
+                _levelMenu.LevelSelected += RefreshHudAfterLevelSelection;
             }
 
             _levelMenu.Show();
+        }
+
+        private void RefreshHudAfterLevelSelection()
+        {
+            if (_uiRoot != null)
+            {
+                _uiRoot.InitializeHUD();
+            }
         }
 
         public TMP_FontAsset FontAsset => _levelText != null ? _levelText.font : TMP_Settings.defaultFontAsset;

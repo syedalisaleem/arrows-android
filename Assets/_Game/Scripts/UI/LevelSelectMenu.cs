@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -59,6 +60,8 @@ namespace _Game.UI
             menu.Initialize(font, tileSprite);
             return menu;
         }
+
+        public event Action LevelSelected;
 
         public void Initialize(TMP_FontAsset font, Sprite tileSprite)
         {
@@ -271,6 +274,7 @@ namespace _Game.UI
 
             Hide();
             LevelManager.Instance.SelectLevel(tile.Level);
+            LevelSelected?.Invoke();
         }
 
         private void ChangePage(int delta)

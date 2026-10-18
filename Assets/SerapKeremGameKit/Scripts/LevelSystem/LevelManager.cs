@@ -206,6 +206,7 @@ namespace SerapKeremGameKit._Managers
         public void Win()
         {
             if (!ValidateGameStateForEvents()) return;
+            UnlockNextLevel();
             StateManager.Instance.SetOnWin();
             // Example: level-based coin reward
             // Currency.Currency.Add(ActiveLevelNumber * 5);
@@ -217,10 +218,16 @@ namespace SerapKeremGameKit._Managers
         public void Win(int moveCount)
         {
             if (!ValidateGameStateForEvents()) return;
+            UnlockNextLevel();
             StateManager.Instance.SetOnWin();
             // Example: move-based bonus
             // int bonus = Mathf.Max(0, 10 - moveCount);
             // Currency.Currency.Add(bonus);
+        }
+
+        private void UnlockNextLevel()
+        {
+            UnlockedLevel = Mathf.Min(ActiveLevelNumber + 1, TotalLevelCount);
         }
 
         [Button("Test LevelLose")]

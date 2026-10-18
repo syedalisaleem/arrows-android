@@ -85,3 +85,38 @@ jobs:
           name: Arrows-AAB-${{ github.run_number }}
           path: build/Android/*.aab
           if-no-files-found: error
+
+      # Play only accepts an .aab, but a phone can only sideload an .apk. Rather than
+      # running Unity twice, fold the bundle into a universal APK signed with the same
+      # upload key. The APK is a testing convenience, never the store artifact.
+      - name: Build universal APK
+        env:
+          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          set -euo pipefail
+          BUNDLETOOL_VERSION=1.18.3
+          curl -sSL -o bundletool.jar \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+
+          AAB=$(ls build/Android/*.aab | head -n 1)
+          echo "Converting $AAB"
+
+          java -jar bundletool.jar build-apks \
+            --bundle="$AAB" \
+            --output=Arrows.apks \
+            --mode=universal \
+            --ks=Keys/arrows-release.keystore \
+            --ks-key-alias=arrows \
+            --ks-pass="pass:${ANDROID_KEYSTORE_PASS}" \
+            --key-pass="pass:${ANDROID_KEYSTORE_PASS}"
+
+          unzip -oq Arrows.apks universal.apk
+          mv universal.apk Arrows.apk
+          ls -lh Arrows.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Arrows-APK-${{ github.run_number }}
+          path: Arrows.apk
+          if-no-files-found: error

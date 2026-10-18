@@ -69,6 +69,13 @@ namespace SerapKeremGameKit._Camera
             if (_gameCamera == null) return;
             _gameCamera.position = _initialPosition;
             _gameCamera.rotation = _initialRotation;
+
+            Camera cam = _gameCamera.GetComponent<Camera>();
+            CameraZoomController zoom = _gameCamera.GetComponent<CameraZoomController>();
+            if (cam != null && zoom != null)
+            {
+                zoom.ResetView(cam.orthographicSize, _initialPosition);
+            }
         }
 
         public void FitCameraToLines(Transform linesParent)
@@ -111,6 +118,13 @@ namespace SerapKeremGameKit._Camera
                 orthographicSize = Mathf.Clamp(orthographicSize, _minOrthographicSize, _maxOrthographicSize);
                 cam.orthographicSize = orthographicSize;
             }
+
+            CameraZoomController zoom = _gameCamera.GetComponent<CameraZoomController>();
+            if (zoom == null)
+            {
+                zoom = _gameCamera.gameObject.AddComponent<CameraZoomController>();
+            }
+            zoom.ResetView(cam.orthographicSize, _gameCamera.position);
         }
 
         private Bounds CalculateLinesBounds(Transform linesParent)

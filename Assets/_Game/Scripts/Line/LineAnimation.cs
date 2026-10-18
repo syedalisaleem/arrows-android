@@ -55,6 +55,7 @@ namespace _Game.Line
             _arrayPool = arrayPool;
 
             _isInitialized = true;
+            line.sortingOrder = 0;
             enabled = false;
         }
 
@@ -67,6 +68,10 @@ namespace _Game.Line
             _forward = forwardDirection;
             _isPlaying = true;
             enabled = true;
+            // Draw the active line above idle line bodies. Without this a
+            // blocked arrow can disappear under the line it touches before
+            // the trigger reverses it, which reads as a flicker.
+            line.sortingOrder = 10;
 
             if (!wasPlaying)
             {
@@ -86,6 +91,7 @@ namespace _Game.Line
             {
                 _isPlaying = false;
                 enabled = false;
+                if (line != null) line.sortingOrder = 0;
                 OnAnimationStopped?.Invoke();
             }
 
@@ -111,6 +117,7 @@ namespace _Game.Line
             {
                 _isPlaying = false;
                 enabled = false;
+                if (line != null) line.sortingOrder = 0;
                 OnAnimationStopped?.Invoke();
                 return;
             }
@@ -183,6 +190,7 @@ namespace _Game.Line
             {
                 _isPlaying = false;
                 enabled = false;
+                line.sortingOrder = 0;
                 OnAnimationCompleted?.Invoke();
             }
         }
@@ -265,6 +273,7 @@ namespace _Game.Line
                         {
                             _isPlaying = false;
                             enabled = false;
+                            line.sortingOrder = 0;
                             OnAnimationCompleted?.Invoke();
                         }
                     }

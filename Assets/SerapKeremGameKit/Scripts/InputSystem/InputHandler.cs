@@ -4,6 +4,7 @@ using SerapKeremGameKit._InputSystem.Data;
 
 namespace SerapKeremGameKit._InputSystem
 {
+    [DefaultExecutionOrder(-100)]
     public class InputHandler : MonoSingleton<InputHandler>
     {
         [Header("Input Settings")]
@@ -68,11 +69,15 @@ namespace SerapKeremGameKit._InputSystem
         public void UnlockInput()
         {
             _isInputLocked = false;
+            // Drop any tap that happened while a menu/dialog was open so it
+            // cannot select a line on the first frame after closing.
+            if (_playerInput != null) _playerInput.ResetFrame();
         }
 
         public void LockInput()
         {
             _isInputLocked = true;
+            if (_playerInput != null) _playerInput.ResetFrame();
         }
     }
 }

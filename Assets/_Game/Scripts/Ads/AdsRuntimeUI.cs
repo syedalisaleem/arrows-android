@@ -200,7 +200,7 @@ namespace _Game.Ads
             card.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             card.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             card.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            card.rectTransform.sizeDelta = new Vector2(820f, 520f);
+            card.rectTransform.sizeDelta = new Vector2(820f, 560f);
             card.rectTransform.anchoredPosition = Vector2.zero;
 
             var title = NewText("Title", card.transform, "OUT OF LIVES", 58, TextAnchor.MiddleCenter);
@@ -208,12 +208,12 @@ namespace _Game.Ads
             title.rectTransform.anchorMax = new Vector2(1f, 1f);
             title.rectTransform.pivot = new Vector2(0.5f, 1f);
             title.rectTransform.sizeDelta = new Vector2(-80f, 90f);
-            title.rectTransform.anchoredPosition = new Vector2(0f, -50f);
+            title.rectTransform.anchoredPosition = new Vector2(0f, -40f);
 
             var body = NewText("Body", card.transform,
                 "Watch a short video to get\n+1 life and keep playing.", 34, TextAnchor.MiddleCenter);
-            body.rectTransform.anchorMin = new Vector2(0f, 0.35f);
-            body.rectTransform.anchorMax = new Vector2(1f, 0.72f);
+            body.rectTransform.anchorMin = new Vector2(0f, 0.47f);
+            body.rectTransform.anchorMax = new Vector2(1f, 0.75f);
             body.rectTransform.offsetMin = new Vector2(60f, 0f);
             body.rectTransform.offsetMax = new Vector2(-60f, 0f);
             body.color = new Color(0.85f, 0.86f, 0.9f, 1f);
@@ -226,8 +226,8 @@ namespace _Game.Ads
             accept.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 0f);
             accept.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 0f);
             accept.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0f);
-            accept.GetComponent<RectTransform>().sizeDelta = new Vector2(620f, 110f);
-            accept.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, 150f);
+            accept.GetComponent<RectTransform>().sizeDelta = new Vector2(620f, 105f);
+            accept.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, 145f);
 
             var decline = NewButton("Decline", card.transform, "NO THANKS", DeclineColor, () =>
             {
@@ -295,6 +295,15 @@ namespace _Game.Ads
 
             // Keep the button on top of the win panel art.
             btn.transform.SetAsLastSibling();
+
+            // NewButton creates its own 100x100 root. Stretch it over the
+            // 620x110 bar we just created, otherwise the label overflows a
+            // tiny button in the middle of the bar.
+            RectTransform btnRect = btn.GetComponent<RectTransform>();
+            btnRect.anchorMin = Vector2.zero;
+            btnRect.anchorMax = Vector2.one;
+            btnRect.offsetMin = Vector2.zero;
+            btnRect.offsetMax = Vector2.zero;
         }
 
         public static void HideDoubleCoinsButton()

@@ -14,10 +14,32 @@ namespace SerapKeremGameKit._Managers
         #region Properties & Data Access
 
         private const string ProgressKey = PreferencesKeys.ProgressData;
+        private const string UnlockedLevelKey = PreferencesKeys.UnlockedLevel;
+
         public int ActiveLevelNumber
         {
             get => PlayerPrefs.GetInt(ProgressKey, 1);
             set { PlayerPrefs.SetInt(ProgressKey, value); SaveUtility.SaveImmediate(); }
+        }
+
+        /// <summary>
+        /// Highest level the player has earned access to. ActiveLevelNumber is
+        /// the level currently being played; selecting an earlier level must
+        /// never relock the levels that were already reached.
+        /// </summary>
+        public int UnlockedLevel
+        {
+            get
+            {
+                int stored = PlayerPrefs.GetInt(UnlockedLevelKey, ActiveLevelNumber);
+                return Mathf.Clamp(Mathf.Max(Mathf.Max(stored, ActiveLevelNumber), 1), 1, TotalLevelCount);
+            }
+            set
+            {
+                int target = Mathf.Max(UnlockedLevel, Mathf.Clamp(value, 1, TotalLevelCount));
+                PlayerPrefs.SetInt(UnlockedLevelKey, target);
+                SaveUtility.SaveImmediate();
+            }
         }
 
         [Title("Level Collections")]
@@ -150,7 +172,24 @@ namespace SerapKeremGameKit._Managers
         public void IncreaseLevelNumber()
         {
             TerminateCurrentLevel();
-            ActiveLevelNumber = Mathf.Min(ActiveLevelNumber + 1, TotalLevelCount);
+            int next = Mathf.Min(ActiveLevelNumber + 1, TotalLevelCount);
+            ActiveLevelNumber = next;
+            UnlockedLevel = next;
+        }
+
+        /// <summary>
+        /// Loads a level chosen from the level-select menu. Locked levels are
+        /// rejected here as well as in the UI so a stale/duplicated button can
+        /// never bypass the progression rule.
+        /// </summary>
+        public void SelectLevel(int levelNumber)
+        {
+            if (levelNumber < 1 || levelNumber > TotalLevelCount) return;
+            if (levelNumber > UnlockedLevel) return;
+
+            TerminateCurrentLevel();
+            ActiveLevelNumber = levelNumber;
+            LoadCurrentLevel();
         }
 
         private void TerminateCurrentLevel()

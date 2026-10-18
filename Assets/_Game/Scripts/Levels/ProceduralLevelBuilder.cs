@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using SerapKeremGameKit._LevelSystem;
+using _Game.Line;
 
 namespace _Game.Levels
 {
@@ -63,12 +64,30 @@ namespace _Game.Levels
                     continue;
                 }
 
-                // Keep the stroke visually consistent as boards grow. Cap it just
-                // below the 0.2 collider thickness so the drawn line never looks
-                // fatter than the hitbox the player is judging.
-                float widthScale = Mathf.Max(1f, BoardSize(layout) / 8f);
-                renderer.widthMultiplier = Mathf.Min(0.18f, 0.1f * widthScale);
+                // Match the fat, hand-authored stroke scale used by levels 5-10.
+                // The camera fit uses roughly two units of padding, so this
+                // formula keeps the on-screen stroke close to 40 px across the
+                // whole 8x8 .. 24x24 range instead of getting razor-thin late.
+                float board = BoardSize(layout);
+                float stroke = Mathf.Clamp(0.022f * (board + 4f), 0.28f, 0.55f);
+                renderer.widthMultiplier = stroke;
 
+                // Handcrafted levels use a 0.9 triangle on a 0.3 stroke. Scale
+                // the procedural head with the stroke, with 0.9 as the floor so
+                // early levels never look like needles.
+                LineRendererHead head = instance.GetComponentInChildren<LineRendererHead>(true);
+                if (head != null)
+                {
+                    SpriteRenderer headSprite = head.GetComponentInChildren<SpriteRenderer>(true);
+                    if (headSprite != null)
+                    {
+                        float headScale = Mathf.Max(0.9f, stroke * 3f);
+                        headSprite.transform.localScale = Vector3.one * headScale;
+                        headSprite.sortingOrder = 20;
+                    }
+                }
+
+                renderer.sortingOrder = 0;
                 renderer.useWorldSpace = false;
                 renderer.positionCount = points.Length;
                 for (int p = 0; p < points.Length; p++)

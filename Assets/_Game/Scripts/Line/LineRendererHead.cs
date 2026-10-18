@@ -34,6 +34,7 @@ namespace _Game.Line
             EnsureActive();
             SetupPhysicsComponents();
             SetupCollisionDetector();
+            EnsureHeadSorting();
 
             _isInitialized = true;
             enabled = true;
@@ -64,6 +65,17 @@ namespace _Game.Line
                 circleCollider.radius = 0.3f;
             }
             circleCollider.isTrigger = true;
+        }
+
+        private void EnsureHeadSorting()
+        {
+            // Heads must always read on top of every line body while a line is
+            // moving; the body renderers stay at order 0.
+            SpriteRenderer spriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.sortingOrder = 20;
+            }
         }
 
         private void SetupCollisionDetector()

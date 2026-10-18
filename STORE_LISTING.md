@@ -275,3 +275,18 @@ Pulled directly from `Arrows.apk` / `Arrows.aab` (run 39109341750, v15), not ass
 | Privacy policy | <https://syedalisaleem.github.io/arrows-android/privacy/> |
 | Default language | English (United States) |
 | Countries | All |
+
+---
+
+## 12. Release notes (Play "What's new")
+
+Paste for v15 (under the 500-character limit):
+
+```text
+1.0.15 — 500 levels
+- 490 new levels (11–500), each solver-verified so every board clears.
+- Boards grow from 8×8 to 18×18, with 8 to 24 arrows.
+- Winding paths and chain reactions; 10-second to 2-minute sessions.
+- New Google consent form before ads initialize.
+- Privacy policy: https://syedalisaleem.github.io/arrows-android/privacy/
+```

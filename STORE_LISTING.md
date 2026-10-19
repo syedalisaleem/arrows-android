@@ -293,7 +293,7 @@ Paste for v21 (under the 500-character limit):
 
 ```text
 1.0.21 — smoother puzzles
-- Arrow layouts are rebuilt with no overlapping paths or blocked starts.
+- Arrow layouts are rebuilt with no overlapping paths.
 - Arrowheads and strokes look consistent across every board.
 - Pinch to zoom the board, and tap targeting is more forgiving.
 - New level list: replay any unlocked level.

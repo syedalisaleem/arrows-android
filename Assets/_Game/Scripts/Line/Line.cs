@@ -284,6 +284,14 @@ namespace _Game.Line
             if (_animation != null)
             {
                 _animation.Stop();
+
+                // Stop() raises OnAnimationStopped, which clears the
+                // collision flag for a normal forward stop. This stop is a
+                // reversal, so keep the line latched until the reverse
+                // completes; otherwise another trigger can reverse it again
+                // and take a second life.
+                _hasCollided = true;
+
                 _animation.VisualZOffset = -1f;
                 _animation.Play(forwardDirection: false);
             }

@@ -187,8 +187,15 @@ namespace SerapKeremGameKit._Managers
             if (levelNumber < 1 || levelNumber > TotalLevelCount) return;
             if (levelNumber > UnlockedLevel) return;
 
+            // Read the unlock ceiling before changing the active level. On a
+            // save created before the level-select feature there is no key
+            // yet; writing the current ceiling here keeps later levels
+            // unlocked even when the player jumps back to an earlier level.
+            int unlockedCeiling = UnlockedLevel;
+
             TerminateCurrentLevel();
             ActiveLevelNumber = levelNumber;
+            UnlockedLevel = unlockedCeiling;
             LoadCurrentLevel();
         }
 

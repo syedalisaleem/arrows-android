@@ -19,7 +19,6 @@ namespace _Game.Line
         private Vector3[] _tempPositionsArray;
         private Vector3ArrayPool _arrayPool;
         private float _visualZOffset;
-        private float _appliedZOffset = float.NaN;
 
         public bool IsPlaying => _isPlaying;
         public bool IsForward => _forward;
@@ -44,7 +43,6 @@ namespace _Game.Line
             if (lineRenderer == null) return;
 
             line = lineRenderer;
-            _appliedZOffset = float.NaN;
 
             var count = line.positionCount;
             if (count < 2) return;
@@ -139,20 +137,16 @@ namespace _Game.Line
         private void ApplyVisualZOffset()
         {
             if (!_isInitialized || line == null || line.positionCount == 0) return;
-            if (!float.IsNaN(_appliedZOffset) &&
-                Mathf.Approximately(_appliedZOffset, _visualZOffset))
-            {
-                return;
-            }
 
+            // Always write the current offset. Besides resetting z back to 0
+            // after a reversed line finishes, this catches a newly restored
+            // tail point while the line is still at the raised visual depth.
             for (int i = 0; i < line.positionCount; i++)
             {
                 Vector3 pos = line.GetPosition(i);
                 pos.z = _visualZOffset;
                 line.SetPosition(i, pos);
             }
-
-            _appliedZOffset = _visualZOffset;
         }
 
         private void AnimateForward()

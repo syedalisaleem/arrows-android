@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace SerapKeremGameKit._Camera
 {
@@ -102,6 +103,14 @@ namespace SerapKeremGameKit._Camera
         {
             float wheel = Input.mouseScrollDelta.y;
             if (Mathf.Abs(wheel) < 0.01f) return;
+
+            // Do not zoom the board while the pointer is over the HUD or an
+            // overlay. Touch devices do not produce wheel input, so this is
+            // mainly an Editor/desktop safeguard.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
 
             float targetSize = _camera.orthographicSize * Mathf.Pow(_wheelStep, wheel);
             ApplyZoom(targetSize, Input.mousePosition);

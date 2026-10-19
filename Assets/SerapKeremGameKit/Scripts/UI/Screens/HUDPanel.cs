@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using _Game.UI;
+using SerapKeremGameKit._Managers;
 
 namespace SerapKeremGameKit._UI
 {
@@ -191,6 +192,12 @@ namespace SerapKeremGameKit._UI
             if (_uiRoot != null)
             {
                 _uiRoot.InitializeHUD();
+                return;
+            }
+
+            if (LevelManager.Instance != null)
+            {
+                SetLevelIndex(LevelManager.Instance.ActiveLevelNumber - 1);
             }
         }
 

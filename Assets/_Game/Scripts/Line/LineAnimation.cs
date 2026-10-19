@@ -19,6 +19,7 @@ namespace _Game.Line
         private Vector3[] _tempPositionsArray;
         private Vector3ArrayPool _arrayPool;
         private float _visualZOffset;
+        private float _appliedZOffset = float.NaN;
 
         public bool IsPlaying => _isPlaying;
         public bool IsForward => _forward;
@@ -26,7 +27,11 @@ namespace _Game.Line
         public float VisualZOffset
         {
             get => _visualZOffset;
-            set => _visualZOffset = value;
+            set
+            {
+                _visualZOffset = value;
+                ApplyVisualZOffset();
+            }
         }
 
         public event Action<bool> OnAnimationStarted;
@@ -39,6 +44,7 @@ namespace _Game.Line
             if (lineRenderer == null) return;
 
             line = lineRenderer;
+            _appliedZOffset = float.NaN;
 
             var count = line.positionCount;
             if (count < 2) return;
@@ -132,7 +138,12 @@ namespace _Game.Line
 
         private void ApplyVisualZOffset()
         {
-            if (Mathf.Abs(_visualZOffset) < 0.001f) return;
+            if (!_isInitialized || line == null || line.positionCount == 0) return;
+            if (!float.IsNaN(_appliedZOffset) &&
+                Mathf.Approximately(_appliedZOffset, _visualZOffset))
+            {
+                return;
+            }
 
             for (int i = 0; i < line.positionCount; i++)
             {
@@ -140,6 +151,8 @@ namespace _Game.Line
                 pos.z = _visualZOffset;
                 line.SetPosition(i, pos);
             }
+
+            _appliedZOffset = _visualZOffset;
         }
 
         private void AnimateForward()

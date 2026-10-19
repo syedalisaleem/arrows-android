@@ -109,6 +109,17 @@ namespace _Game.UI
             }
         }
 
+        private void OnDisable()
+        {
+            // If the canvas or scene is disabled while the overlay is open,
+            // make sure the game is not left frozen at timeScale 0.
+            if (!_isOpen) return;
+
+            _isOpen = false;
+            Time.timeScale = _previousTimeScale > 0f ? _previousTimeScale : 1f;
+            InputHandler.Instance?.UnlockInput();
+        }
+
         private int TotalLevels => Mathf.Max(1, LevelManager.Instance.TotalLevelCount);
         private int PageCount => Mathf.Max(1, Mathf.CeilToInt(TotalLevels / (float)LevelsPerPage));
 
@@ -148,6 +159,14 @@ namespace _Game.UI
             panelImage.color = Cream;
             panelImage.raycastTarget = true;
             SetSliced(panelImage);
+
+            // Clicks on the panel background must not bubble up to the
+            // full-screen backdrop button and close the menu. This Button has
+            // no listener; it only consumes the click.
+            Button panelBlocker = panel.gameObject.AddComponent<Button>();
+            panelBlocker.targetGraphic = panelImage;
+            panelBlocker.transition = Selectable.Transition.None;
+            panelBlocker.navigation = new Navigation { mode = Navigation.Mode.None };
 
             Outline panelOutline = panel.gameObject.AddComponent<Outline>();
             panelOutline.effectColor = new Color(Gold.r, Gold.g, Gold.b, 0.75f);

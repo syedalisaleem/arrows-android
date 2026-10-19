@@ -61,7 +61,10 @@ EASY TO LEARN, HARD TO RUSH
 Lines travel at different speeds and lengths, so the gap that looked safe a second ago is already closed.
 
 500 LEVELS, ONE CLIMB
-The first ten boards are hand-built to teach the rhythm. After that, the knots get longer, tighter, and more tangled — up to two dozen interlocking arrows on a single screen. Early levels take seconds. Later ones ask you to read the whole board before you touch anything.
+The first ten boards are hand-built to teach the rhythm. After that, the knots get longer, tighter, and more tangled — up to two dozen interlocking arrows on a single screen. Every board is checked so its arrows stay clear of each other. Early levels take seconds. Later ones ask you to read the whole board before you touch anything.
+
+ZOOM AND REPLAY
+Pinch to zoom a busy board, or open the level list and jump straight back to any level you have unlocked.
 
 FIVE LIVES
 You start with five hearts. Every collision takes one. When they run out, the level restarts — and you can earn an extra life if you want one.
@@ -85,9 +88,12 @@ Somewhere in every level there is an order that works. Find it.
 ```
 
 Every claim above is true of the current build: 10 handcrafted level prefabs plus 490
-solver-verified procedural boards (levels 11–500), 5 starting lives
-(`LivesManager._maxLives`), `LevelConfig._winCoins = 10`, PlayerPrefs persistence,
-rewarded life + rewarded double coins, interstitial every 2 completed levels.
+procedural boards (levels 11–500); procedural boards are solver-verified and all 500
+layout sets were checked for overlapping arrows. The bundle also has pinch/wheel camera
+zoom, forgiving tap targeting, a themed level-select menu that only opens unlocked
+levels, 5 starting lives (`LivesManager._maxLives`), `LevelConfig._winCoins = 10`,
+PlayerPrefs persistence, rewarded life + rewarded double coins, and interstitial every
+2 completed levels.
 
 Note: the store description uses `•` and `—`. Both are fine; Play renders plain text.
 
@@ -228,19 +234,20 @@ central 80% — the generated one already does.
 
 ## 9. Verified facts about the bundle
 
-Pulled directly from `Arrows.apk` / `Arrows.aab` (run 39109341750, v15), not assumed:
+Pulled directly from the current release artifacts `Arrows-1.0.21.apk` / `Arrows-1.0.21.aab` (run 39195513416, v21), not assumed:
 
 | Property | Value | Play requirement |
 |---|---|---|
 | Package | `com.syedali.arrows` | — |
-| versionCode | `15` | Must increase every upload ✅ |
-| versionName | `1.0.15` | — |
+| versionCode | `21` | Must increase every upload ✅ |
+| versionName | `1.0.21` | — |
 | minSdkVersion | `24` (Android 7.0) | — |
 | **targetSdkVersion** | **`36`** | New apps need ≥ 35 since Aug 2025 ✅ |
 | compileSdkVersion | `36` | — |
 | ABI | ARM64 only | 64-bit required ✅ |
-| Levels | **500** (10 handcrafted + 490 data-driven, solver-verified) | — |
-| Size | 42.36 MB AAB · 42.67 MB APK | ≤ 200 MB base module ✅ |
+| Levels | **500** (10 handcrafted + 490 procedural, all checked for overlapping arrows) | — |
+| Size | 42.38 MB AAB · 42.69 MB APK | ≤ 200 MB base module ✅ |
+| APK / AAB SHA-256 | `5E72A626A380C5D50F2D336A759C1337DE502A4AE05155C5A6ED517816D26175` / `4BE2DB780FD7DA783AD88693B9A655BF2E21292087A11627336B40A97C36E234` | exact final artifacts ✅ |
 | Signature | `CN=Syed Ali`, RSA 2048, APK Signature Scheme **v2 + v3** (v1 JAR absent; fine at minSdk 24) | — |
 | AdMob App ID in manifest | `ca-app-pub-7129470803481646~1513994194` | Must match AdMob account ✅ |
 | Consent | Google UMP 4.0.0, requested **before** `MobileAds.Initialize` | EEA/UK requirement ✅ |
@@ -249,20 +256,22 @@ Pulled directly from `Arrows.apk` / `Arrows.aab` (run 39109341750, v15), not ass
 
 ## 10. Blockers between here and "Publish"
 
-1. **Device pass for the procedural levels.** v15 compiles and packages all 490 layouts,
-   but this environment has no emulator. On first install, play through level 11 (the
-   first procedural board) and check camera fit, line width, tap targets, and the level
-   counter. Later boards differ only in size and line count.
+1. **Device pass for the full 500-level list.** v21 compiles and packages all 500 boards
+   (10 handcrafted + 490 generated), but this environment has no emulator. On first
+   install, play level 11 (the first procedural board) and check camera fit, arrow
+   width/head size, tap targets, the new level menu, and camera pinch/zoom. Later
+   procedural boards differ mainly in size and arrow count.
 2. **Privacy policy URL** — live at <https://syedalisaleem.github.io/arrows-android/privacy/>.
    The source is `docs/privacy/index.html` in this repo, served by GitHub Pages from `main`.
-3. **New personal developer accounts** (created after 13 Nov 2023) must run a closed test
-   with **12 testers opted in for 14 continuous days** before applying for production.
-   Confirm which type of account you have — it changes the timeline by two weeks.
-4. **Play App Signing** must be enrolled on the first upload. The `.aab` is signed with
+3. **Play App Signing** must be enrolled on the first upload. The `.aab` is signed with
    your upload key, which is exactly what Play expects; Google re-signs for distribution.
    Keep `E:\build\keystore\` forever.
+4. **Closed testing** for new personal developer accounts may still require
+   **12 testers opted in for 14 continuous days** before applying for production.
 5. **Ad content rating** — the G ceiling is wired in `AdsManager.ApplyRequestConfiguration`;
    set the same ceiling in the AdMob console.
+6. **Credential rotation** — the previous keystore/Unity credentials were exposed; rotate
+   the Unity password and any exposed secrets before production access is granted.
 
 ---
 
@@ -280,13 +289,14 @@ Pulled directly from `Arrows.apk` / `Arrows.aab` (run 39109341750, v15), not ass
 
 ## 12. Release notes (Play "What's new")
 
-Paste for v15 (under the 500-character limit):
+Paste for v21 (under the 500-character limit):
 
 ```text
-1.0.15 — 500 levels
-- 490 new levels (11–500), each solver-verified so every board clears.
-- Boards grow from 8×8 to 18×18, with 8 to 24 arrows.
-- Winding paths and chain reactions; 10-second to 2-minute sessions.
-- New Google consent form before ads initialize.
-- Privacy policy: https://syedalisaleem.github.io/arrows-android/privacy/
+1.0.21 — smoother puzzles
+- Arrow layouts are rebuilt with no overlapping paths or blocked starts.
+- Arrowheads and strokes look consistent across every board.
+- Pinch to zoom the board, and tap targeting is more forgiving.
+- New level list: replay any unlocked level.
+- Fixed arrow collisions, lives, and level menu HUD.
+- Google consent + privacy policy unchanged.
 ```

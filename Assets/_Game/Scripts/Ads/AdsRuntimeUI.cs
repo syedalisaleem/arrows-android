@@ -281,7 +281,7 @@ namespace _Game.Ads
             rt.anchoredPosition = new Vector2(0f, bottomInset);
 
             // Match game UI: dark card style with subtle accent instead of bright green
-            var btn = NewButton("Double", rt, "WATCH AD  x2 COINS", new Color(0.13f, 0.14f, 0.18f), () =>
+            var btn = NewButton("Double", rt, "WATCH AD  x2 COINS", AcceptColor, () =>
             {
                 HideDoubleCoinsButton();
                 AdsManager.Instance?.ShowRewarded(
@@ -294,8 +294,7 @@ namespace _Game.Ads
                     unitId: AdsConfig.RewardedDoubleCoinsUnitId);
             });
 
-            // Match rest of game UI: consistent dark card, white text, clean layout
-            btn.GetComponent<Image>().color = new Color(0.13f, 0.14f, 0.18f);
+            // Keep green accept color matching life-prompt button
 
             // Add a coin icon-style label above the button for visual consistency
             var iconLabel = NewText("DoubleLabel", rt, "2× COINS", 28, TextAnchor.LowerCenter);

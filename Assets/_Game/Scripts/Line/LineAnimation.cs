@@ -9,6 +9,10 @@ namespace _Game.Line
     {
         private LineRenderer line;
         [SerializeField] private float speed = 5f;
+        [SerializeField] private float speedDamp = 8f; // Very fast response to avoid drag
+        [SerializeField] private AnimationCurve speedCurve = AnimationCurve.Linear(0, 1f, 1, 1f); // Constant full speed
+        [SerializeField] private float minStepDistance = 0.01f; // Minimum distance per frame
+        [SerializeField] private float maxMoveDistance = 1.0f; // Maximum distance per frame
         [SerializeField] private string _movementSoundKey = "";
 
         private bool _isPlaying;
@@ -19,6 +23,9 @@ namespace _Game.Line
         private Vector3[] _tempPositionsArray;
         private Vector3ArrayPool _arrayPool;
         private float _visualZOffset;
+        private float _currentSpeed;
+        private float _lastUpdateTime;
+        private float _accumulatedDeltaTime;
 
         public bool IsPlaying => _isPlaying;
         public bool IsForward => _forward;
@@ -83,8 +90,9 @@ namespace _Game.Line
 
                 if (AudioManager.IsInitialized && !string.IsNullOrEmpty(_movementSoundKey))
                     AudioManager.Instance.Play(_movementSoundKey);
+                // Reduced: only play light haptic once at animation start
                 if (HapticManager.IsInitialized)
-                    HapticManager.Instance.Play(HapticType.Selection);
+                    HapticManager.Instance.Play(HapticType.Light);
             }
         }
 
@@ -154,18 +162,23 @@ namespace _Game.Line
             var count = line.positionCount;
             var lastPoint = line.GetPosition(count - 1);
 
-            lastPoint += _direction.normalized * (speed * Time.deltaTime);
+            // Direct speed - no drag, no choppy
+            float stepDistance = speed * Time.deltaTime;
+            Vector3 moveTarget = lastPoint + _direction.normalized * stepDistance;
+            lastPoint = Vector3.MoveTowards(lastPoint, moveTarget, stepDistance);
             line.SetPosition(count - 1, lastPoint);
 
             var tailPoint = line.GetPosition(0);
             var tailDirection = line.GetPosition(1) - tailPoint;
-            tailPoint += tailDirection.normalized * (speed * Time.deltaTime);
+            
+            // Apply same smoothing to tail movement
+            Vector3 tailMoveDistance = tailDirection.normalized * stepDistance;
+            tailPoint = Vector3.MoveTowards(tailPoint, tailPoint + tailMoveDistance, tailMoveDistance.magnitude);
             line.SetPosition(0, tailPoint);
 
             OnLinePositionsChanged?.Invoke();
 
             if (!(Vector2.Distance(tailPoint, line.GetPosition(1)) < 0.1f)) return;
-
 
             var newCount = count - 1;
             if (_arrayPool != null)
@@ -210,15 +223,15 @@ namespace _Game.Line
             Vector3 originHeadPos = positionsOrigin[positionsOrigin.Length - 1];
 
             float distToOrigin = Vector2.Distance(currentHeadPos, originHeadPos);
+
+            // Direct speed - no drag
             float moveDist = speed * Time.deltaTime;
 
             Vector3 newHeadPos;
-
             if (distToOrigin > 0.001f)
             {
                 Vector3 targetPos = originHeadPos;
                 targetPos.z = currentHeadPos.z;
-
                 newHeadPos = Vector3.MoveTowards(currentHeadPos, targetPos, moveDist);
                 line.SetPosition(lastIndex, newHeadPos);
             }
@@ -239,10 +252,9 @@ namespace _Game.Line
 
                 if (Vector2.Distance(currentTailPos, targetTailPos) > 0.1f)
                 {
-                    Vector3 newTailPos = Vector3.MoveTowards(currentTailPos, targetTailPos, speed * Time.deltaTime);
+                    Vector3 newTailPos = Vector3.MoveTowards(currentTailPos, targetTailPos, moveDist);
 
                     newTailPos.z = currentTailPos.z;
-
                     line.SetPosition(0, newTailPos);
                 }
                 else

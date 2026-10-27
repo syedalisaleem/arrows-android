@@ -278,8 +278,11 @@ namespace _Game.Line
 
             if (AudioManager.IsInitialized && !string.IsNullOrEmpty(_collisionSoundKey))
                 AudioManager.Instance.Play(_collisionSoundKey);
+            
+            // Only play haptic for the first collision (life loss event)
+            // Use Failure type for significant impact
             if (HapticManager.IsInitialized)
-                HapticManager.Instance.Play(HapticType.Selection);
+                HapticManager.Instance.Play(HapticType.Failure);
 
             if (_animation != null)
             {

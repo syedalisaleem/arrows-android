@@ -1,4 +1,4 @@
-# Arrows 1.0.21 — Play Store and Closed-Testing Kit
+# Arrows 1.0.23 — Play Store and Closed-Testing Kit
 
 Use this sheet to move from the ready build into a **Play Store closed test**
 and then to **production**. Current release artifacts are already built,
@@ -10,10 +10,10 @@ signed, and byte-verified; you do not need to rebuild before the first upload.
 |---|---|
 | Package | `com.syedali.arrows` |
 | VersionCode | `21` |
-| VersionName | `1.0.21` |
+| VersionName | `1.0.23` |
 | Build source | GitHub Actions run `39195513416`, commit `20af5fa` |
-| AAB | `E:\build\arrow-store\Arrows-1.0.21.aab` |
-| APK | `E:\build\arrow-store\Arrows-1.0.21.apk` |
+| AAB | `E:\build\arrow-store\Arrows-1.0.23.aab` |
+| APK | `E:\build\arrow-store\Arrows-1.0.23.apk` |
 | AAB SHA-256 | `4BE2DB780FD7DA783AD88693B9A655BF2E21292087A11627336B40A97C36E234` |
 | APK SHA-256 | `5E72A626A380C5D50F2D336A759C1337DE502A4AE05155C5A6ED517816D26175` |
 | Contact | `syedalisaleem14@gmail.com` |
@@ -58,7 +58,7 @@ Do these in Play Console once, in order:
      - `tablet-01.png`, `tablet-02.png`, `tablet-03.png`, `tablet-04.png`
    - Feature graphic: `feature-1024x500.png`
    - `contact-sheet.png` is a quick visual check, not a Play asset.
-   - If you refresh screenshots, reuse the v21 build so store graphics match
+   - If you refresh screenshots, reuse the v22 build so store graphics match
      what the app actually shows.
 
 ## Closed testing plan
@@ -66,7 +66,7 @@ Do these in Play Console once, in order:
 ### 1. Create/testing track
 
 - Create a **closed testing** release track titled `Closed beta`.
-- Upload only `Arrows-1.0.21.aab` there. Do **not** upload any `.apk` to Play.
+- Upload only `Arrows-1.0.23.aab` there. Do **not** upload any `.apk` to Play.
 - Keep the country list **worldwide** or at least include all tester countries.
 - Set the release note from `STORE_LISTING.md` §12.
 
@@ -82,7 +82,7 @@ Do these in Play Console once, in order:
 
 - Name: **Arrows (Play Store closed beta)**
 - Product: `com.syedali.arrows`
-- Version to install: **1.0.21**
+- Version to install: **1.0.23**
 - Start here: <https://play.google.com/store/apps/details?id=com.syedali.arrows>
 - Privacy: <https://syedalisaleem.github.io/arrows-android/privacy/>
 - Email for feedback: <mailto:syedalisaleem14@gmail.com>

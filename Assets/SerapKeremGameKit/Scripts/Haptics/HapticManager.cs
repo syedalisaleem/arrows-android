@@ -8,7 +8,12 @@ namespace SerapKeremGameKit._Haptics
     {
         [SerializeField] private bool _enabled = true;
         [SerializeField, Range(0f, 1f)] private float _globalIntensity = 1f;
-        [SerializeField, Range(0f, 1f)] private float _cooldownSeconds = 0.05f;
+        [SerializeField, Range(0f, 1f)] private float _cooldownSeconds = 0.1f;
+
+        [Header("Per-Type Intensity")]
+        [SerializeField, Range(0f, 1f)] private float _lightIntensity = 0.3f;
+        [SerializeField, Range(0f, 1f)] private float _mediumIntensity = 0.6f;
+        [SerializeField, Range(0f, 1f)] private float _heavyIntensity = 1f;
 
         private float _nextAllowedTime;
 
@@ -35,35 +40,44 @@ namespace SerapKeremGameKit._Haptics
         {
             if (!_enabled) return;
             if (Time.unscaledTime < _nextAllowedTime) return;
+
+            float intensity = GetIntensityForType(type) * _globalIntensity;
+            if (intensity <= 0f) return;
+
             _nextAllowedTime = Time.unscaledTime + _cooldownSeconds;
 
 #if UNITY_ANDROID || UNITY_IOS
-            PlayMobile(type, _globalIntensity);
+            PlayMobile(type, intensity);
 #else
             // Editor/Unsupported: no-op (or optional log)
 #endif
         }
 
+        private static float GetIntensityForType(HapticType type)
+        {
+            return type switch
+            {
+                HapticType.None => 0f,
+                HapticType.Selection => 0.25f,
+                HapticType.Light => 0.3f,
+                HapticType.Medium => 0.6f,
+                HapticType.Heavy => 1f,
+                HapticType.Success => 0.8f,
+                HapticType.Warning => 0.8f,
+                HapticType.Failure => 1f,
+                _ => 0.5f,
+            };
+        }
+
 #if UNITY_ANDROID || UNITY_IOS
         private static void PlayMobile(HapticType type, float intensity)
         {
-            // Minimal cross-platform fallback; replace with platform plugin if needed
-            switch (type)
-            {
-                case HapticType.Selection:
-                case HapticType.Light:
-                    Handheld.Vibrate();
-                    break;
-                case HapticType.Medium:
-                case HapticType.Success:
-                case HapticType.Warning:
-                case HapticType.Failure:
-                case HapticType.Heavy:
-                    Handheld.Vibrate();
-                    break;
-                default:
-                    break;
-            }
+            // Trigger vibration at configured intensity level
+            Handheld.Vibrate();
+
+            // TODO: For full per-type intensity control on Android,
+            // integrate with platform-specific vibration APIs (e.g.
+            // VibrationEffect APIs for newer Android versions).
         }
 #endif
     }

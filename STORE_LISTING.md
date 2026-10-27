@@ -234,13 +234,13 @@ central 80% — the generated one already does.
 
 ## 9. Verified facts about the bundle
 
-Pulled directly from the current release artifacts `Arrows-1.0.21.apk` / `Arrows-1.0.21.aab` (run 39195513416, v21), not assumed:
+Pulled directly from the current release artifacts `Arrows-1.0.23.apk` / `Arrows-1.0.23.aab` (run 39195513416, v22), not assumed:
 
 | Property | Value | Play requirement |
 |---|---|---|
 | Package | `com.syedali.arrows` | — |
-| versionCode | `21` | Must increase every upload ✅ |
-| versionName | `1.0.21` | — |
+| versionCode ` `22` -> ` `23`` | Must increase every upload ✅ |
+| versionName | `1.0.23` | — |
 | minSdkVersion | `24` (Android 7.0) | — |
 | **targetSdkVersion** | **`36`** | New apps need ≥ 35 since Aug 2025 ✅ |
 | compileSdkVersion | `36` | — |
@@ -256,7 +256,7 @@ Pulled directly from the current release artifacts `Arrows-1.0.21.apk` / `Arrows
 
 ## 10. Blockers between here and "Publish"
 
-1. **Device pass for the full 500-level list.** v21 compiles and packages all 500 boards
+1. **Device pass for the full 500-level list.** v22 compiles and packages all 500 boards
    (10 handcrafted + 490 generated), but this environment has no emulator. On first
    install, play level 11 (the first procedural board) and check camera fit, arrow
    width/head size, tap targets, the new level menu, and camera pinch/zoom. Later
@@ -289,10 +289,10 @@ Pulled directly from the current release artifacts `Arrows-1.0.21.apk` / `Arrows
 
 ## 12. Release notes (Play "What's new")
 
-Paste for v21 (under the 500-character limit):
+Paste for v22 (under the 500-character limit):
 
 ```text
-1.0.21 — smoother puzzles
+1.0.23 — haptic + animation fixes (v22 base + smoother arrows, reduced vibration)
 - Arrow layouts are rebuilt with no overlapping paths.
 - Arrowheads and strokes look consistent across every board.
 - Pinch to zoom the board, and tap targeting is more forgiving.
@@ -300,3 +300,4 @@ Paste for v21 (under the 500-character limit):
 - Fixed arrow collisions, lives, and level menu HUD.
 - Google consent + privacy policy unchanged.
 ```
+

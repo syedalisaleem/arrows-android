@@ -280,7 +280,8 @@ namespace _Game.Ads
             rt.sizeDelta = new Vector2(620f, 110f);
             rt.anchoredPosition = new Vector2(0f, bottomInset);
 
-            var btn = NewButton("Double", rt, "WATCH AD  x2 COINS", AcceptColor, () =>
+            // Match game UI: dark card style with subtle accent instead of bright green
+            var btn = NewButton("Double", rt, "WATCH AD  x2 COINS", new Color(0.13f, 0.14f, 0.18f), () =>
             {
                 HideDoubleCoinsButton();
                 AdsManager.Instance?.ShowRewarded(
@@ -293,7 +294,16 @@ namespace _Game.Ads
                     unitId: AdsConfig.RewardedDoubleCoinsUnitId);
             });
 
-            // Keep the button on top of the win panel art.
+            // Match rest of game UI: consistent dark card, white text, clean layout
+            btn.GetComponent<Image>().color = new Color(0.13f, 0.14f, 0.18f);
+
+            // Add a coin icon-style label above the button for visual consistency
+            var iconLabel = NewText("DoubleLabel", rt, "2× COINS", 28, TextAnchor.LowerCenter);
+            iconLabel.color = new Color(0.9f, 0.85f, 0.6f, 1f); // Gold coin tint matching rest of UI
+            iconLabel.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 1f);
+            iconLabel.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 1f);
+            iconLabel.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 1f);
+            iconLabel.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, -30f);
             btn.transform.SetAsLastSibling();
 
             // NewButton creates its own 100x100 root. Stretch it over the

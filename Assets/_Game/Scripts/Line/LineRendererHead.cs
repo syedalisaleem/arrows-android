@@ -62,7 +62,7 @@ namespace _Game.Line
             if (circleCollider == null)
             {
                 circleCollider = gameObject.AddComponent<CircleCollider2D>();
-                circleCollider.radius = 0.3f;
+                circleCollider.radius = 0.15f;
             }
             circleCollider.isTrigger = true;
         }

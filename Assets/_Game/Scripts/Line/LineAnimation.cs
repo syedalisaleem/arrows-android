@@ -163,17 +163,16 @@ namespace _Game.Line
             var lastPoint = line.GetPosition(count - 1);
 
             // Direct speed - no drag, no choppy
-            float stepDistance = speed * Time.deltaTime;
-            Vector3 moveTarget = lastPoint + _direction.normalized * stepDistance;
-            lastPoint = Vector3.MoveTowards(lastPoint, moveTarget, stepDistance);
+            float stepDistance = speed * Time.deltaTime * 1.5f;
+            lastPoint += _direction.normalized * stepDistance;
             line.SetPosition(count - 1, lastPoint);
 
             var tailPoint = line.GetPosition(0);
             var tailDirection = line.GetPosition(1) - tailPoint;
             
             // Apply same smoothing to tail movement
-            Vector3 tailMoveDistance = tailDirection.normalized * stepDistance;
-            tailPoint = Vector3.MoveTowards(tailPoint, tailPoint + tailMoveDistance, tailMoveDistance.magnitude);
+            Vector3 tailMoveDistance = tailDirection.normalized * (speed * Time.deltaTime * 1.5f);
+            tailPoint += tailMoveDistance;
             line.SetPosition(0, tailPoint);
 
             OnLinePositionsChanged?.Invoke();
@@ -225,7 +224,7 @@ namespace _Game.Line
             float distToOrigin = Vector2.Distance(currentHeadPos, originHeadPos);
 
             // Direct speed - no drag
-            float moveDist = speed * Time.deltaTime;
+            float moveDist = speed * Time.deltaTime * 1.5f;
 
             Vector3 newHeadPos;
             if (distToOrigin > 0.001f)

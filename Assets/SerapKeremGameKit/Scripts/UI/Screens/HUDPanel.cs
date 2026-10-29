@@ -27,6 +27,20 @@ namespace SerapKeremGameKit._UI
             if (_restartButton != null) _restartButton.BindOnClick(this, OnRestartClicked);
             if (_settingsButton != null) _settingsButton.BindOnClick(this, OnSettingsClicked);
             EnsureLevelsButton();
+            EnsureSafeArea();
+        }
+
+        /// <summary>
+        /// Keeps the HUD clear of notches and punch-hole cameras. The panel root is a
+        /// full-screen rect, so insetting it shifts the header down and inward while its
+        /// children keep their corner anchors. No-op on devices without a cutout.
+        /// </summary>
+        private void EnsureSafeArea()
+        {
+            if (GetComponent<SafeAreaFitter>() == null)
+            {
+                gameObject.AddComponent<SafeAreaFitter>();
+            }
         }
 
         public override void Show(bool playSound = true)

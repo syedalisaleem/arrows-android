@@ -139,22 +139,84 @@ namespace _Game.Ads
         private Button NewButton(string name, Transform parent, string label, Color bg, Action onClick)
         {
             var rt = NewRect(name, parent);
-            var img = rt.gameObject.AddComponent<Image>();
-            img.color = bg;
-            img.raycastTarget = true;
+
+            // White rounded rim, matching the chunky style of the game's own buttons.
+            var rim = rt.gameObject.AddComponent<Image>();
+            rim.sprite = RoundedSprite;
+            rim.type = Image.Type.Sliced;
+            rim.color = new Color(1f, 1f, 1f, 0.95f);
+            rim.raycastTarget = true;
 
             var btn = rt.gameObject.AddComponent<Button>();
-            btn.targetGraphic = img;
+            btn.targetGraphic = rim;
 
-            var text = NewText(name + "Label", rt, label, 34, TextAnchor.MiddleCenter);
+            // Coloured face sits inside the rim, so the outline reads as a border.
+            var faceRt = NewRect("Face", rt);
+            Stretch(faceRt);
+            faceRt.offsetMin = new Vector2(5f, 5f);
+            faceRt.offsetMax = new Vector2(-5f, -5f);
+            var face = faceRt.gameObject.AddComponent<Image>();
+            face.sprite = RoundedSprite;
+            face.type = Image.Type.Sliced;
+            face.color = bg;
+            face.raycastTarget = false;
+
+            var text = NewText(name + "Label", rt, label, 40, TextAnchor.MiddleCenter);
+            text.fontStyle = FontStyle.Bold;
             var trt = text.rectTransform;
             trt.anchorMin = Vector2.zero;
             trt.anchorMax = Vector2.one;
-            trt.offsetMin = Vector2.zero;
-            trt.offsetMax = Vector2.zero;
+            trt.offsetMin = new Vector2(14f, 0f);
+            trt.offsetMax = new Vector2(-14f, 0f);
 
             if (onClick != null) btn.onClick.AddListener(() => onClick());
             return btn;
+        }
+
+        /// <summary>
+        /// A 9-sliced rounded rectangle generated once at runtime. The ad UI is built from
+        /// code (no prefabs), so without this every button is a hard-edged rectangle that
+        /// looks nothing like the rest of the game.
+        /// </summary>
+        private static Sprite _roundedSprite;
+
+        private static Sprite RoundedSprite
+        {
+            get
+            {
+                if (_roundedSprite != null) return _roundedSprite;
+
+                const int size = 64;
+                const float radius = 22f;
+
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear,
+                    name = "AdRoundedRect"
+                };
+
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        // Distance from the nearest corner-circle centre; inside the
+                        // straight middle section the clamp makes it 0 -> fully opaque.
+                        float cx = Mathf.Clamp(x + 0.5f, radius, size - radius);
+                        float cy = Mathf.Clamp(y + 0.5f, radius, size - radius);
+                        float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(cx, cy));
+                        float a = Mathf.Clamp01(radius - d + 0.5f);
+                        tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                    }
+                }
+                tex.Apply();
+
+                float b = radius + 1f;
+                _roundedSprite = Sprite.Create(
+                    tex, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f),
+                    100f, 0, SpriteMeshType.FullRect, new Vector4(b, b, b, b));
+                return _roundedSprite;
+            }
         }
 
         private static void Stretch(RectTransform rt)
@@ -202,6 +264,10 @@ namespace _Game.Ads
             card.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             card.rectTransform.sizeDelta = new Vector2(820f, 560f);
             card.rectTransform.anchoredPosition = Vector2.zero;
+
+            // Same rounded treatment as the buttons; sharp-cornered cards look off-brand.
+            card.sprite = RoundedSprite;
+            card.type = Image.Type.Sliced;
 
             var title = NewText("Title", card.transform, "OUT OF LIVES", 58, TextAnchor.MiddleCenter);
             title.rectTransform.anchorMin = new Vector2(0f, 1f);
@@ -294,15 +360,10 @@ namespace _Game.Ads
                     unitId: AdsConfig.RewardedDoubleCoinsUnitId);
             });
 
-            // Keep green accept color matching life-prompt button
-
-            // Add a coin icon-style label above the button for visual consistency
-            var iconLabel = NewText("DoubleLabel", rt, "2× COINS", 28, TextAnchor.LowerCenter);
-            iconLabel.color = new Color(0.9f, 0.85f, 0.6f, 1f); // Gold coin tint matching rest of UI
-            iconLabel.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 1f);
-            iconLabel.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 1f);
-            iconLabel.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 1f);
-            iconLabel.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, -30f);
+            // Keep green accept color matching life-prompt button.
+            // The label lives inside the button itself ("WATCH AD  x2 COINS"), so no
+            // extra caption is drawn here — a second label used to sit *behind* the
+            // button and leaked out below it as a ghost "2x COINS" line.
             btn.transform.SetAsLastSibling();
 
             // NewButton creates its own 100x100 root. Stretch it over the

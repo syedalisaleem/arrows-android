@@ -65,9 +65,19 @@ namespace _Game.UI
                 return;
             }
 
-            Rect safe = Screen.safeArea;
+            Rect rawSafeArea = Screen.safeArea;
+            Rect safe = rawSafeArea;
 
-            _appliedSafeArea = safe;
+            // Some devices/emulators report an empty or nonsensical safe area. Collapsing the
+            // anchors to that would hide the whole HUD, so fall back to the full screen.
+            if (safe.width <= 0f || safe.height <= 0f || safe.xMax > width || safe.yMax > height)
+            {
+                safe = new Rect(0f, 0f, width, height);
+            }
+
+            // Store the *raw* value so a device that needs the fallback does not re-apply the
+            // layout on every frame.
+            _appliedSafeArea = rawSafeArea;
             _appliedWidth = width;
             _appliedHeight = height;
 

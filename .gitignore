@@ -102,3 +102,7 @@ InitTestScene*.unity*
 /[Kk]eys/
 *.keystore
 *.jks
+
+# python helper scripts
+__pycache__/
+*.pyc

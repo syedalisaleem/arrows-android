@@ -84,6 +84,10 @@ namespace SerapKeremGameKit._LevelSystem
             }
 
             CameraManager.Instance.FitCameraToLines(_linesParent);
+
+            // The camera zoom needed by bigger boards can exceed the authored backdrop,
+            // so grow the level's background plane to match before the first frame.
+            _Game.Levels.LevelBackgroundFitter.Fit(transform, CameraManager.Instance.GameCamera);
         }
 
         public virtual void Play()

@@ -20,6 +20,9 @@ namespace SerapKeremGameKit._Camera
         private Vector3 _initialPosition;
         private Quaternion _initialRotation;
 
+        /// <summary>The orthographic gameplay camera this manager drives.</summary>
+        public Camera GameCamera => _gameCamera != null ? _gameCamera.GetComponent<Camera>() : null;
+
         public void SnapFollow()
         {
             if (_gameCamera == null || _followTarget == null) return;

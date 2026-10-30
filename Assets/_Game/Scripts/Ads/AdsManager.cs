@@ -68,6 +68,13 @@ namespace _Game.Ads
         /// <summary>Set when the player earns the double-coins reward for the current win.</summary>
         public bool DoubleCoinsUnlocked { get; private set; }
 
+        /// <summary>
+        /// Raised once per rewarded unit when its creative becomes ready, with the unit id.
+        /// Lets placements mount their offer when a slow download lands *after* the player
+        /// reached the screen that offers it.
+        /// </summary>
+        public event Action<string> RewardedLoaded;
+
         public bool SdkReady => _sdkReady;
         public bool InterstitialReady => _interstitialAd != null && _interstitialAd.CanShowAd();
 
@@ -253,6 +260,7 @@ namespace _Game.Ads
                     slot.Retry = 0;
                     slot.Ad = ad;
                     RegisterRewardedEvents(slot, ad);
+                    if (RewardedLoaded != null) RewardedLoaded(unitId);
                     TraceLogger.Log(LogPrefix + "Rewarded ad ready: " + unitId);
                 });
             }

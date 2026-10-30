@@ -52,6 +52,11 @@ FONT = {
 LETTERS = sorted(FONT)
 
 POLYGONS = {
+    # heart with a long bottom taper so the point survives rasterisation
+    "heart": [(0, -1.0), (-0.42, -0.55), (-0.78, -0.12), (-0.93, 0.30),
+              (-0.80, 0.68), (-0.46, 0.92), (-0.16, 0.86), (0, 0.52),
+              (0.16, 0.86), (0.46, 0.92), (0.80, 0.68), (0.93, 0.30),
+              (0.78, -0.12), (0.42, -0.55)],
     # right-pointing arrow: shaft, then a head about twice as tall
     "arrow": [(-1, -0.30), (0.25, -0.30), (0.25, -0.62), (1, 0),
               (0.25, 0.62), (0.25, 0.30), (-1, 0.30)],
@@ -88,10 +93,9 @@ def point_in_poly(u, v, poly):
 
 def inside_shape(name, u, v):
     import math
+    if name in POLYGONS:
+        return point_in_poly(u, v, POLYGONS[name])
     r = math.hypot(u, v)
-    if name == "heart":
-        x, y = u * 1.12, v * 1.12 + 0.06
-        return (x * x + y * y - 1) ** 3 - x * x * y ** 3 <= 0 and r <= 1.05
     if name == "star":
         theta = math.atan2(v, u) + math.pi / 2
         seg = math.pi / 5
@@ -117,8 +121,6 @@ def inside_shape(name, u, v):
     if name == "flower":
         theta = math.atan2(v, u)
         return r <= 0.55 + 0.33 * math.cos(5 * theta)
-    if name in POLYGONS:
-        return point_in_poly(u, v, POLYGONS[name])
     raise ValueError(name)
 
 

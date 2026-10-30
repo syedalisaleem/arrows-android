@@ -73,15 +73,16 @@ namespace _Game.Levels
                 renderer.widthMultiplier = stroke;
 
                 // Handcrafted levels use a 0.9 triangle on a 0.3 stroke. Scale
-                // the procedural head with the stroke, with 0.9 as the floor so
-                // early levels never look like needles.
+                // the procedural head with the stroke, but never past one lattice
+                // unit: rows are one unit apart on the big boards, and a larger
+                // head would bleed into the row above and below.
                 LineRendererHead head = instance.GetComponentInChildren<LineRendererHead>(true);
                 if (head != null)
                 {
                     SpriteRenderer headSprite = head.GetComponentInChildren<SpriteRenderer>(true);
                     if (headSprite != null)
                     {
-                        float headScale = Mathf.Max(0.9f, stroke * 3f);
+                        float headScale = Mathf.Clamp(stroke * 3f, 0.9f, 1.05f);
                         headSprite.transform.localScale = Vector3.one * headScale;
                         headSprite.sortingOrder = 20;
                     }

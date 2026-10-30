@@ -1,3 +1,4 @@
+using System;
 using SerapKeremGameKit._Economy;
 using SerapKeremGameKit._LevelSystem;
 using SerapKeremGameKit._Levels;
@@ -24,6 +25,9 @@ namespace SerapKeremGameKit._UI
         [SerializeField] private LevelConfig _fallbackConfig;
 
         private GameState _lastState = GameState.None;
+
+        /// <summary>Win-panel listener waiting for a late-loading double-coins creative.</summary>
+        private Action<string> _doubleCoinsListener;
 
         [Header("Audio Keys")]
         [SerializeField] private string _keyOnWin = "game_win";
@@ -139,24 +143,63 @@ namespace SerapKeremGameKit._UI
                 _win.Setup(stars, reward, totalBefore, this);
                 _win.Show();
 
-                // Offer to double the reward with a rewarded video — but only when the ad is
-                // actually loaded, so we never show a button that does nothing.
-                bool hasDoubleCoinsAd = AdsManager.Exists && AdsManager.Instance != null &&
-                                        AdsManager.Instance.IsRewardedReady(AdsConfig.RewardedDoubleCoinsUnitId);
-
-                if (hasDoubleCoinsAd)
-                {
-                    AdsRuntimeUI.ShowDoubleCoinsButton(reward, _ =>
-                    {
-                        // AdsRuntimeUI already unlocked the bonus; reflect it on the win panel
-                        // so the coin animation and the granted total stay in sync.
-                        if (_win != null) _win.ApplyRewardMultiplier(AdsConfig.DoubleCoinsMultiplier);
-                    });
-                }
+                OfferDoubleCoins(reward);
             }
         }
 
-        
+        /// <summary>
+        /// Offers the rewarded "2x coins" button on the win panel. When the creative has not
+        /// finished downloading yet the offer is mounted the moment it arrives, instead of
+        /// being skipped — a player who clears a level quickly still gets the button.
+        /// </summary>
+        private void OfferDoubleCoins(int reward)
+        {
+            UnhookDoubleCoins();
+
+            var ads = AdsManager.Instance;
+            if (ads == null) return;
+
+            if (ads.IsRewardedReady(AdsConfig.RewardedDoubleCoinsUnitId))
+            {
+                MountDoubleCoinsButton(reward);
+                return;
+            }
+
+            _doubleCoinsListener = unitId =>
+            {
+                if (unitId != AdsConfig.RewardedDoubleCoinsUnitId) return;
+                UnhookDoubleCoins();
+                MountDoubleCoinsButton(reward);
+            };
+
+            ads.RewardedLoaded += _doubleCoinsListener;
+        }
+
+        private void MountDoubleCoinsButton(int reward)
+        {
+            if (_win == null) return;
+            if (StateManager.Instance.CurrentState != GameState.OnWin) return;
+
+            var ads = AdsManager.Instance;
+            if (ads != null && ads.DoubleCoinsUnlocked) return; // reward already claimed
+
+            AdsRuntimeUI.ShowDoubleCoinsButton(reward, _ =>
+            {
+                // AdsRuntimeUI already unlocked the bonus; reflect it on the win panel
+                // so the coin animation and the granted total stay in sync.
+                if (_win != null) _win.ApplyRewardMultiplier(AdsConfig.DoubleCoinsMultiplier);
+            });
+        }
+
+        private void UnhookDoubleCoins()
+        {
+            if (_doubleCoinsListener == null) return;
+
+            var ads = AdsManager.Instance;
+            if (ads != null) ads.RewardedLoaded -= _doubleCoinsListener;
+            _doubleCoinsListener = null;
+        }
+
         private float CalculateCompletionTime(Level level)
         {
             if (level == null)
